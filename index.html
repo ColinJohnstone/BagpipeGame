@@ -302,6 +302,30 @@
       color: #f5c518;
     }
 
+    /* Mute button */
+    #mute-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 12px;
+      background: #0e0e1e;
+      border: 2px solid #333;
+      color: #888;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: .08s;
+      line-height: 1;
+    }
+
+    #mute-btn:hover {
+      border-color: #556;
+      color: #bbb;
+    }
+
+    #mute-btn.muted {
+      color: #e74c3c;
+      border-color: #7a2020;
+    }
+
     /* Floating text */
     #ftxt {
       position: absolute;
@@ -358,6 +382,127 @@
       font-size: 20px;
       letter-spacing: 4px;
     }
+
+    /* ── TOUCH CONTROLS ── */
+    #touch-ctrl {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 900px;
+      height: 100%;
+      pointer-events: none;
+      z-index: 70;
+      user-select: none;
+    }
+
+    .tc-btn {
+      position: absolute;
+      font-family: 'Press Start 2P', monospace;
+      color: rgba(255, 255, 255, 0.92);
+      background: rgba(8, 8, 24, 0.58);
+      border: 2px solid rgba(80, 80, 180, 0.5);
+      border-radius: 10px;
+      pointer-events: all;
+      touch-action: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+    }
+
+    .tc-btn:active {
+      background: rgba(30, 60, 30, 0.78);
+      border-color: rgba(140, 220, 80, 0.8);
+    }
+
+    #tc-mv-left {
+      width: 70px;
+      height: 70px;
+      font-size: 24px;
+      left: 14px;
+      top: 416px;
+    }
+
+    #tc-mv-right {
+      width: 70px;
+      height: 70px;
+      font-size: 24px;
+      left: 92px;
+      top: 416px;
+    }
+
+    #tc-shoot {
+      width: 66px;
+      height: 66px;
+      font-size: 22px;
+      right: 102px;
+      top: 418px;
+      border-radius: 50%;
+    }
+
+    #tc-jump {
+      width: 82px;
+      height: 82px;
+      font-size: 11px;
+      right: 14px;
+      top: 406px;
+      border-radius: 50%;
+      background: rgba(12, 38, 12, 0.65);
+      border-color: rgba(100, 210, 60, 0.6);
+      color: #8dff6e;
+      letter-spacing: 0;
+    }
+
+    #tc-pause-btn {
+      width: 44px;
+      height: 44px;
+      font-size: 15px;
+      right: 10px;
+      top: 10px;
+      border-radius: 8px;
+    }
+
+    #tc-abl-row {
+      position: absolute;
+      top: 422px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 5px;
+      pointer-events: all;
+    }
+
+    .tc-abl-btn {
+      font-family: 'Press Start 2P', monospace;
+      width: 44px;
+      height: 44px;
+      background: rgba(8, 8, 24, 0.55);
+      border: 1.5px solid rgba(80, 80, 180, 0.45);
+      border-radius: 7px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      font-size: 14px;
+      pointer-events: all;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .tc-abl-btn .abl-key {
+      font-size: 5px;
+      color: rgba(245, 197, 24, 0.85);
+    }
+
+    .tc-abl-btn:active {
+      background: rgba(30, 60, 30, 0.78);
+      border-color: rgba(140, 220, 80, 0.8);
+    }
   </style>
 </head>
 
@@ -387,12 +532,22 @@
         style="font-size:6.5px;color:#aaa;line-height:2.6;text-align:left;border:1px solid #2a2a4a;padding:16px;max-width:420px;">
         <span style="color:#f5c518">← →</span> MOVE &nbsp;&nbsp; <span style="color:#f5c518">Z / ↑</span> JUMP (double:
         KILT POWER!)<br>
-        <span style="color:#f5c518">X</span> SHOOT MUSIC NOTES &nbsp;&nbsp; <span style="color:#f5c518">S</span> SKIRL
+        <span style="color:#f5c518">Q</span> SHOOT MUSIC NOTES &nbsp;&nbsp; <span style="color:#f5c518">W</span> SKIRL
         BLAST<br>
-        <span style="color:#f5c518">D</span> HIGHLAND CHARGE &nbsp;&nbsp; <span style="color:#f5c518">F</span> DRONE
+        <span style="color:#f5c518">E</span> HIGHLAND CHARGE &nbsp;&nbsp; <span style="color:#f5c518">R</span> DRONE
         WAVE<br>
-        <span style="color:#f5c518">A</span> THISTLE SHIELD &nbsp;&nbsp; <span style="color:#f5c518">ESC/P</span>
-        PAUSE<br><br>
+        <span style="color:#f5c518">A</span> THISTLE SHIELD &nbsp;&nbsp; <span style="color:#f5c518">S</span> HEAL HP
+        &nbsp;&nbsp; <span style="color:#f5c518">M</span> MUTE<br>
+        <span style="color:#f5c518">ESC/P</span> PAUSE<br><br>
+        <span style="color:#c8a820">? BLOCKS</span> — JUMP INTO FROM BELOW OR SHOOT!<br>
+        &nbsp;&nbsp;<span style="color:#ff4488">⚡ RAPID FIRE</span> — AUTO-FIRE FOR 5 SECONDS<br>
+        &nbsp;&nbsp;<span style="color:#44ffcc">🎵 BIG NOTES</span> — GROWING SHOTS THAT EXPAND<br>
+        &nbsp;&nbsp;<span style="color:#ff8800">💣 BOMB NOTES</span> — AOE SPLASH KILLS GROUPS!<br><br>
+        <span style="color:#aaa">ENEMY TYPES:</span><br>
+        &nbsp;&nbsp;<span style="color:#ff2020">🥁 DRUM</span> — PATROLS PLATFORMS<br>
+        &nbsp;&nbsp;<span style="color:#00ff44">↑↑ JUMPER</span> — LEAPS AT YOU FROM ABOVE!<br>
+        &nbsp;&nbsp;<span style="color:#ff6600">✦ SHOOTER</span> — FIRES DRUM-BEATS AT RANGE!<br>
+        &nbsp;&nbsp;<span style="color:#00e8ff">▶▶ CHARGER</span> — DASHES WHEN YOU'RE CLOSE!<br><br>
         <span style="color:#4abf3f">GOAL:</span> REACH THE CASTLE GATE AT THE<br>
         END OF EACH LEVEL TO ADVANCE!<br><br>
         <span style="color:#6eb4ff">COINS</span> ADD SCORE · <span style="color:#e74c3c">DRUMS</span> HURT YOU<br>
@@ -439,30 +594,50 @@
         <span class="lbl">SCORE</span><span id="score-txt" style="color:#f5c518">0</span>
       </div>
       <div id="ability-row">
-        <div class="asl" id="asl-shoot">🎵<span class="akey">X</span>
+        <div class="asl" id="asl-shoot">🎵<span class="akey">Q</span>
           <div class="cd-fill" id="cd-shoot"></div>
         </div>
-        <div class="asl" id="asl-skirl">💨<span class="akey">S</span>
+        <div class="asl" id="asl-skirl">💨<span class="akey">W</span>
           <div class="cd-fill" id="cd-skirl"></div>
         </div>
-        <div class="asl" id="asl-charge">⚔️<span class="akey">D</span>
+        <div class="asl" id="asl-charge">⚔️<span class="akey">E</span>
           <div class="cd-fill" id="cd-charge"></div>
         </div>
-        <div class="asl" id="asl-drone">🎶<span class="akey">F</span>
+        <div class="asl" id="asl-drone">🎶<span class="akey">R</span>
           <div class="cd-fill" id="cd-drone"></div>
         </div>
         <div class="asl" id="asl-shield">🌿<span class="akey">A</span>
           <div class="cd-fill" id="cd-shield"></div>
+        </div>
+        <div class="asl" id="asl-heal">❤️<span class="akey">S</span>
+          <div class="cd-fill" id="cd-heal"></div>
         </div>
       </div>
       <div class="hud-r">
         <span class="lbl">TIME</span><span id="time-txt" style="color:#6eb4ff">0:00</span>
         &nbsp;|&nbsp;
         <span class="lbl">COINS</span><span id="coin-txt" style="color:#f5c518">0</span>
+        &nbsp;|&nbsp;
+        <button id="mute-btn" title="Toggle Music (M)">🔊</button>
       </div>
     </div>
 
     <div id="ftxt"></div>
+    <!-- TOUCH CONTROLS -->
+    <div id="touch-ctrl">
+      <button class="tc-btn" id="tc-mv-left">◀</button>
+      <button class="tc-btn" id="tc-mv-right">▶</button>
+      <button class="tc-btn" id="tc-shoot">🎵</button>
+      <button class="tc-btn" id="tc-jump">JUMP</button>
+      <button class="tc-btn" id="tc-pause-btn">⏸</button>
+      <div id="tc-abl-row">
+        <button class="tc-abl-btn" id="tc-skirl">💨<span class="abl-key">SKIRL</span></button>
+        <button class="tc-abl-btn" id="tc-charge">⚔️<span class="abl-key">CHRG</span></button>
+        <button class="tc-abl-btn" id="tc-drone">🎶<span class="abl-key">DRONE</span></button>
+        <button class="tc-abl-btn" id="tc-shield">🌿<span class="abl-key">SHLD</span></button>
+        <button class="tc-abl-btn" id="tc-heal">❤️<span class="abl-key">HEAL</span></button>
+      </div>
+    </div>
   </div>
   <script>
     'use strict';
@@ -500,9 +675,19 @@
           g.gain.setValueAtTime(.4, now); g.gain.exponentialRampToValueAtTime(.001, now + .25);
           o.start(now); o.stop(now + .25); break;
         case 'shoot':
-          o.type = 'square'; o.frequency.setValueAtTime(660, now); o.frequency.exponentialRampToValueAtTime(330, now + .1);
-          g.gain.setValueAtTime(.15, now); g.gain.exponentialRampToValueAtTime(.001, now + .12);
-          o.start(now); o.stop(now + .12); break;
+          // Bagpipe chanter bleat — sawtooth + pitch bend like a chanter note
+          {
+            const chanter = AC.createOscillator(), cg = AC.createGain();
+            const chanter2 = AC.createOscillator(), cg2 = AC.createGain();
+            // main chanter tone (sawtooth, bagpipe-ish)
+            chanter.type = 'sawtooth'; chanter.frequency.setValueAtTime(587, now); chanter.frequency.setValueAtTime(659, now + .04); chanter.frequency.setValueAtTime(587, now + .09);
+            cg.gain.setValueAtTime(.22, now); cg.gain.exponentialRampToValueAtTime(.001, now + .22);
+            chanter.connect(cg); cg.connect(masterGain); chanter.start(now); chanter.stop(now + .22);
+            // harmonic overtone for richness
+            chanter2.type = 'sawtooth'; chanter2.frequency.setValueAtTime(880, now); chanter2.frequency.setValueAtTime(990, now + .04); chanter2.frequency.setValueAtTime(880, now + .09);
+            cg2.gain.setValueAtTime(.08, now); cg2.gain.exponentialRampToValueAtTime(.001, now + .18);
+            chanter2.connect(cg2); cg2.connect(masterGain); chanter2.start(now); chanter2.stop(now + .22);
+          } break;
         case 'hit':
           o.type = 'sawtooth'; o.frequency.setValueAtTime(180, now); o.frequency.exponentialRampToValueAtTime(60, now + .15);
           g.gain.setValueAtTime(.35, now); g.gain.exponentialRampToValueAtTime(.001, now + .18);
@@ -545,6 +730,40 @@
           o.type = 'sawtooth'; o.frequency.setValueAtTime(440, now); o.frequency.exponentialRampToValueAtTime(55, now + .8);
           g.gain.setValueAtTime(.4, now); g.gain.exponentialRampToValueAtTime(.001, now + .85);
           o.start(now); o.stop(now + .85); break;
+        case 'powerup_spawn':
+          // block hit thunk
+          o.type = 'square'; o.frequency.setValueAtTime(220, now); o.frequency.setValueAtTime(165, now + .05);
+          g.gain.setValueAtTime(.3, now); g.gain.exponentialRampToValueAtTime(.001, now + .18);
+          o.start(now); o.stop(now + .18); break;
+        case 'powerup_collect':
+          // triumphant pipe trill
+          [659, 784, 880, 1047, 784].forEach((f, i) => {
+            const o2 = AC.createOscillator(), g2 = AC.createGain();
+            o2.connect(g2); g2.connect(masterGain);
+            o2.type = 'sawtooth'; o2.frequency.value = f;
+            g2.gain.setValueAtTime(.0, now + i * .06); g2.gain.linearRampToValueAtTime(.18, now + i * .06 + .03);
+            g2.gain.exponentialRampToValueAtTime(.001, now + i * .06 + .2);
+            o2.start(now + i * .06); o2.stop(now + i * .06 + .22);
+          }); break;
+        case 'bomb_explode':
+          // explosion — noise burst
+          {
+            const buf = AC.createBuffer(1, AC.sampleRate * .4, AC.sampleRate);
+            const d = buf.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (AC.sampleRate * .12));
+            const ns = AC.createBufferSource(), ng = AC.createGain();
+            ns.buffer = buf; ng.gain.value = .55;
+            ns.connect(ng); ng.connect(masterGain); ns.start(now);
+            // low boom
+            const boom = AC.createOscillator(), bg2 = AC.createGain();
+            boom.type = 'sine'; boom.frequency.setValueAtTime(80, now); boom.frequency.exponentialRampToValueAtTime(20, now + .4);
+            bg2.gain.setValueAtTime(.4, now); bg2.gain.exponentialRampToValueAtTime(.001, now + .4);
+            boom.connect(bg2); bg2.connect(masterGain); boom.start(now); boom.stop(now + .4);
+          } break;
+        case 'rapidfire':
+          o.type = 'sawtooth'; o.frequency.setValueAtTime(440, now); o.frequency.exponentialRampToValueAtTime(880, now + .1);
+          g.gain.setValueAtTime(.2, now); g.gain.exponentialRampToValueAtTime(.001, now + .15);
+          o.start(now); o.stop(now + .15); break;
         case 'drone':
           o.type = 'square'; o.frequency.setValueAtTime(110, now); o.frequency.setValueAtTime(165, now + .1); o.frequency.setValueAtTime(220, now + .2);
           g.gain.setValueAtTime(.25, now); g.gain.exponentialRampToValueAtTime(.001, now + .4);
@@ -553,44 +772,67 @@
       }
     }
 
-    // ── MUSIC (Scottish reel-ish procedural) ──────────────
-    const SCALE = [220, 246.94, 261.63, 293.66, 329.63, 349.23, 392, 440, 493.88, 523.25, 587.33];
-    const MELODY = [4, 6, 7, 6, 4, 2, 0, 2, 4, 6, 4, 2, 7, 6, 4, 2, 0, 1, 2, 4, 6, 4, 2, 0];
-    const BASS = [0, 0, 4, 4, 7, 7, 4, 4];
-    let melodyStep = 0, bassStep = 0, musicTimer = 0;
+    // ── MUSIC (Authentic Scottish Bagpipe — drone + chanter melody) ──────────────
+    // Pentatonic/mixolydian scale rooted in A (bagpipe scale: A B C# D E F# G A)
+    const PIPE_SCALE = [220, 246.94, 277.18, 293.66, 329.63, 369.99, 392, 440, 493.88, 554.37, 587.33, 659.25];
+    // Scotland the Brave-ish reel pattern
+    const PIPE_MELODY = [7, 9, 11, 9, 7, 5, 4, 5, 7, 9, 7, 5, 11, 9, 7, 5, 4, 3, 4, 5, 7, 9, 7, 4, 7, 5, 4, 2, 4, 5, 7, 5];
+    const PIPE_COUNTER = [4, 4, 7, 7, 5, 5, 4, 4, 7, 7, 9, 9, 7, 7, 5, 5]; // harmony line
+    let melodyStep = 0, counterStep = 0, musicTimer = 0;
 
     function tickMusic() {
       resumeAC();
       const now = AC.currentTime;
-      const bpm = 160, beat = 60 / bpm;
+      const bpm = 144, beat = 60 / bpm;
 
-      // melody
-      const mFreq = SCALE[MELODY[melodyStep % MELODY.length]];
-      const mo = AC.createOscillator(), mg = AC.createGain();
-      mo.type = 'triangle'; mo.frequency.value = mFreq * 2;
-      mg.gain.setValueAtTime(.12, now); mg.gain.exponentialRampToValueAtTime(.001, now + beat * .8);
-      mo.connect(mg); mg.connect(masterGain);
-      mo.start(now); mo.stop(now + beat * .85);
-      melodyStep++;
-
-      // bass (every 2 beats)
-      if (melodyStep % 2 === 0) {
-        const bFreq = SCALE[BASS[bassStep % BASS.length]];
-        const bo = AC.createOscillator(), bg = AC.createGain();
-        bo.type = 'square'; bo.frequency.value = bFreq;
-        bg.gain.setValueAtTime(.07, now); bg.gain.exponentialRampToValueAtTime(.001, now + beat * 1.5);
-        bo.connect(bg); bg.connect(masterGain);
-        bo.start(now); bo.stop(now + beat * 1.6);
-        bassStep++;
+      // ── CONTINUOUS DRONE (bagpipe hallmark — A and E) ──
+      if (melodyStep % 16 === 0) {
+        [110, 165, 220].forEach((freq, i) => {
+          const dr = AC.createOscillator(), dg = AC.createGain();
+          dr.type = 'sawtooth'; dr.frequency.value = freq;
+          // slight vibrato on drone
+          const lfo = AC.createOscillator(); const lfoG = AC.createGain();
+          lfo.frequency.value = 5.5; lfoG.gain.value = freq * .005;
+          lfo.connect(lfoG); lfoG.connect(dr.frequency);
+          lfo.start(now); lfo.stop(now + beat * 16);
+          dg.gain.setValueAtTime(.0, now); dg.gain.linearRampToValueAtTime(i === 0 ? .055 : i === 1 ? .04 : .025, now + .1);
+          dg.gain.setValueAtTime(i === 0 ? .055 : i === 1 ? .04 : .025, now + beat * 15.5);
+          dg.gain.exponentialRampToValueAtTime(.001, now + beat * 16);
+          dr.connect(dg); dg.connect(masterGain); dr.start(now); dr.stop(now + beat * 16);
+        });
       }
 
-      // drone (sustained background)
-      if (melodyStep % 8 === 0) {
-        const dr = AC.createOscillator(), dg = AC.createGain();
-        dr.type = 'sawtooth'; dr.frequency.value = 110;
-        dg.gain.setValueAtTime(.03, now); dg.gain.setValueAtTime(.03, now + beat * 7); dg.gain.exponentialRampToValueAtTime(.001, now + beat * 8);
-        dr.connect(dg); dg.connect(masterGain);
-        dr.start(now); dr.stop(now + beat * 8);
+      // ── CHANTER MELODY (sawtooth = bagpipe timbre) ──
+      const mFreq = PIPE_SCALE[PIPE_MELODY[melodyStep % PIPE_MELODY.length]];
+      const mo = AC.createOscillator(), mg = AC.createGain();
+      mo.type = 'sawtooth'; mo.frequency.value = mFreq;
+      // tiny grace-note ornament (bagpipe gracenote effect)
+      mo.frequency.setValueAtTime(mFreq * 1.125, now);
+      mo.frequency.setValueAtTime(mFreq, now + .022);
+      mg.gain.setValueAtTime(.0, now); mg.gain.linearRampToValueAtTime(.16, now + .012);
+      mg.gain.setValueAtTime(.16, now + beat * .75); mg.gain.exponentialRampToValueAtTime(.001, now + beat * .92);
+      mo.connect(mg); mg.connect(masterGain); mo.start(now); mo.stop(now + beat);
+      melodyStep++;
+
+      // ── COUNTER-MELODY (harmony, every 2 beats, softer) ──
+      if (melodyStep % 2 === 0) {
+        const cFreq = PIPE_SCALE[PIPE_COUNTER[counterStep % PIPE_COUNTER.length]];
+        const co = AC.createOscillator(), cg = AC.createGain();
+        co.type = 'sawtooth'; co.frequency.value = cFreq * .5;
+        cg.gain.setValueAtTime(.0, now); cg.gain.linearRampToValueAtTime(.06, now + .02);
+        cg.gain.setValueAtTime(.06, now + beat * 1.5); cg.gain.exponentialRampToValueAtTime(.001, now + beat * 1.85);
+        co.connect(cg); cg.connect(masterGain); co.start(now); co.stop(now + beat * 2);
+        counterStep++;
+      }
+
+      // ── SNARE KICK (ghost beats on reel rhythm) ──
+      if (melodyStep % 4 === 0) {
+        const buf = AC.createBuffer(1, AC.sampleRate * .08, AC.sampleRate);
+        const d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (AC.sampleRate * .02));
+        const sn = AC.createBufferSource(), sg = AC.createGain();
+        sn.buffer = buf; sg.gain.value = .07;
+        sn.connect(sg); sg.connect(masterGain); sn.start(now + beat * .5);
       }
 
       musicTimer = setTimeout(tickMusic, beat * 1000);
@@ -598,6 +840,18 @@
 
     function startMusic() { if (!musicPlaying) { musicPlaying = true; tickMusic(); } }
     function stopMusic() { musicPlaying = false; clearTimeout(musicTimer); }
+
+    // ── MUTE TOGGLE ──
+    let muted = false;
+    function toggleMute() {
+      muted = !muted;
+      masterGain.gain.value = muted ? 0 : 0.45;
+      const btn = document.getElementById('mute-btn');
+      btn.textContent = muted ? '🔇' : '🔊';
+      btn.classList.toggle('muted', muted);
+    }
+    // Wire mute button (script runs after DOM is rendered)
+    document.getElementById('mute-btn').addEventListener('click', toggleMute);
 
     // ═══════════════════════════════════════════════════════
     //  CANVAS SETUP
@@ -625,11 +879,12 @@
     //  INPUT
     // ═══════════════════════════════════════════════════════
     const K = {}, JP = {};
-    const BLOCK = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'z', 'Z', 'x', 'X', 's', 'S', 'd', 'D', 'f', 'F', 'a', 'A', 'p', 'P', 'Escape', ' '];
+    const BLOCK = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'z', 'Z', 'x', 'X', 'q', 'Q', 'w', 'W', 'e', 'E', 'r', 'R', 'a', 'A', 's', 'S', 'p', 'P', 'Escape', ' '];
     window.addEventListener('keydown', e => {
       if (!K[e.key]) JP[e.key] = true;
       K[e.key] = true;
       if (BLOCK.includes(e.key)) e.preventDefault();
+      if (e.key === 'm' || e.key === 'M') toggleMute();
     });
     window.addEventListener('keyup', e => { K[e.key] = false; });
 
@@ -639,8 +894,16 @@
     let GS = 'title'; // title|playing|paused|gameover|complete
     let score = 0, coins = 0, currentLevel = 1, levelTime = 0;
     let player, projectiles, enemies, collectibles, particles, camera, goalRect;
+    let powerups = []; // active powerup items floating on screen
+    let enemyProjectiles = []; // projectiles fired by enemy shooters
     let frameCount = 0;
     const levelStars = {};
+
+    // ── POWER-UP TYPES ──
+    // 'rapid'  = rapid fire for 5s
+    // 'big'    = growing notes
+    // 'bomb'   = AOE splash damage
+    const POWERUP_TYPES = ['rapid', 'big', 'bomb'];
 
     // ═══════════════════════════════════════════════════════
     //  PIXEL ART — 32px BAGPIPER
@@ -834,8 +1097,14 @@
         { body: '#6b0000', mid: '#9b1a1a', head: '#e8dcc0', rim: '#555', eye: '#ff2020', pupil: '#ff0', teeth: '#eee', bg: '#3a0000' },
         { body: '#3a006b', mid: '#6a1a9b', head: '#e0dce0', rim: '#665', eye: '#cc44ff', pupil: '#f0f', teeth: '#ddf', bg: '#1a0040' },
         { body: '#00306b', mid: '#1a5a9b', head: '#d8e0e8', rim: '#456', eye: '#44aaff', pupil: '#0ff', teeth: '#ddf', bg: '#001840' },
+        // variant 3 = JUMPER — neon green
+        { body: '#0a4a00', mid: '#1a8a10', head: '#d0f0c0', rim: '#2a5', eye: '#00ff44', pupil: '#afa', teeth: '#cfc', bg: '#032a00' },
+        // variant 4 = SHOOTER — hot orange/red
+        { body: '#6b2800', mid: '#c85010', head: '#f0e0c0', rim: '#843', eye: '#ff6600', pupil: '#ff0', teeth: '#fec', bg: '#3a1000' },
+        // variant 5 = CHARGER — electric cyan
+        { body: '#003a4a', mid: '#0a7090', head: '#c0e8f0', rim: '#059', eye: '#00e8ff', pupil: '#0ff', teeth: '#bef', bg: '#001a20' },
       ];
-      const pal = palettes[variant % 3];
+      const pal = palettes[Math.min(variant, palettes.length - 1)];
 
       // shadow
       c.globalAlpha = .25; c.fillStyle = '#000'; c.fillRect(X + 2, Y + 34 + bob, 28, 4); c.globalAlpha = 1;
@@ -1080,213 +1349,367 @@
     //  LEVEL DEFINITIONS  (wide levels with camera scroll)
     // ═══════════════════════════════════════════════════════
     const LEVELS = [
-      // ─ LEVEL 1: Glen of Beginnings ─
       {
         name: 'GLEN OF BEGINNINGS',
-        width: 2400, bgColors: ['#0d1b35', '#1a3050'],
+        width: 3000, bgColors: ['#0d1b35', '#1a3050'],
         skyStars: true, misty: true,
         platforms: [
-          { x: 0, y: 450, w: 2400, h: 60 },           // ground
-          { x: 160, y: 370, w: 120, h: 20 },
-          { x: 340, y: 320, w: 100, h: 20 },
-          { x: 500, y: 280, w: 120, h: 20 },
-          { x: 680, y: 330, w: 90, h: 20 },
-          { x: 820, y: 260, w: 110, h: 20 },
-          { x: 1000, y: 380, w: 100, h: 20 },
-          { x: 1140, y: 300, w: 120, h: 20 },
-          { x: 1320, y: 240, w: 100, h: 20 },
-          { x: 1480, y: 300, w: 100, h: 20 },
-          { x: 1620, y: 360, w: 140, h: 20 },
-          { x: 1800, y: 280, w: 120, h: 20 },
-          { x: 1960, y: 350, w: 100, h: 20 },
-          { x: 2100, y: 290, w: 160, h: 20 },
+          { x: 0, y: 450, w: 3000, h: 60 },
+          { x: 150, y: 392, w: 72, h: 18 },
+          { x: 285, y: 334, w: 72, h: 18 },
+          { x: 425, y: 276, w: 72, h: 18 },
+          { x: 560, y: 218, w: 72, h: 18 },
+          { x: 695, y: 276, w: 72, h: 18 },
+          { x: 830, y: 334, w: 72, h: 18 },
+          { x: 980, y: 392, w: 65, h: 18 },
+          { x: 1105, y: 330, w: 55, h: 18 },
+          { x: 1220, y: 268, w: 55, h: 18 },
+          { x: 1340, y: 206, w: 55, h: 18 },
+          { x: 1460, y: 268, w: 55, h: 18 },
+          { x: 1575, y: 330, w: 55, h: 18 },
+          { x: 1340, y: 143, w: 55, h: 18 },
+          { x: 1710, y: 390, w: 60, h: 18 },
+          { x: 1830, y: 320, w: 60, h: 18 },
+          { x: 1960, y: 255, w: 60, h: 18 },
+          { x: 2090, y: 320, w: 60, h: 18 },
+          { x: 2220, y: 390, w: 60, h: 18 },
+          { x: 2370, y: 310, w: 80, h: 18 },
+          { x: 2510, y: 245, w: 70, h: 18 },
+          { x: 2650, y: 180, w: 70, h: 18 },
+          { x: 2790, y: 245, w: 70, h: 18 },
+          { x: 2880, y: 310, w: 90, h: 18 },
         ],
         enemies: [
-          { x: 350, y: 418, v: 0, hp: 3 }, { x: 520, y: 418, v: 0, hp: 3 },
-          { x: 700, y: 418, v: 1, hp: 4 }, { x: 900, y: 418, v: 0, hp: 3 },
-          { x: 1050, y: 418, v: 1, hp: 4 }, { x: 1200, y: 418, v: 0, hp: 3 },
-          { x: 1350, y: 418, v: 2, hp: 5 }, { x: 1520, y: 418, v: 0, hp: 4 },
-          { x: 1700, y: 418, v: 1, hp: 4 }, { x: 1850, y: 418, v: 2, hp: 5 },
-          { x: 170, y: 342, v: 0, hp: 3 }, { x: 690, y: 302, v: 0, hp: 3 },
-          { x: 840, y: 232, v: 1, hp: 4 }, { x: 1330, y: 212, v: 2, hp: 5 },
+          { x: 165, y: 365, v: 0, hp: 2 },
+          { x: 435, y: 249, v: 3, hp: 3 },
+          { x: 570, y: 191, v: 0, hp: 3 },
+          { x: 840, y: 307, v: 1, hp: 3 },
+          { x: 990, y: 365, v: 3, hp: 3 },
+          { x: 1230, y: 241, v: 4, hp: 4 },
+          { x: 1350, y: 179, v: 0, hp: 4 },
+          { x: 1720, y: 363, v: 3, hp: 4 },
+          { x: 1970, y: 228, v: 4, hp: 5 },
+          { x: 2100, y: 293, v: 5, hp: 5 },
+          { x: 2380, y: 283, v: 2, hp: 5 },
+          { x: 2520, y: 218, v: 4, hp: 5 },
+          { x: 2800, y: 218, v: 5, hp: 6 },
         ],
         coins: [
-          { x: 180, y: 345 }, { x: 220, y: 345 }, { x: 360, y: 295 }, { x: 520, y: 255 },
-          { x: 700, y: 305 }, { x: 840, y: 235 }, { x: 1010, y: 355 }, { x: 1160, y: 275 },
-          { x: 1340, y: 215 }, { x: 1490, y: 275 }, { x: 1640, y: 335 }, { x: 1820, y: 255 },
-          { x: 1980, y: 325 }, { x: 2120, y: 265 }, { x: 2160, y: 265 },
+          { x: 158, y: 368 }, { x: 290, y: 310 }, { x: 430, y: 252 },
+          { x: 565, y: 194 }, { x: 700, y: 252 }, { x: 835, y: 310 },
+          { x: 985, y: 368 }, { x: 1110, y: 306 }, { x: 1225, y: 244 },
+          { x: 1345, y: 182 }, { x: 1345, y: 119 }, { x: 1465, y: 244 },
+          { x: 1580, y: 306 }, { x: 1715, y: 366 }, { x: 1835, y: 296 },
+          { x: 1965, y: 231 }, { x: 2095, y: 296 }, { x: 2225, y: 366 },
+          { x: 2375, y: 286 }, { x: 2515, y: 221 }, { x: 2655, y: 156 },
         ],
-        goalX: 2220, goalY: 310,
-        timePar: 120, timeGold: 90,
+        goalX: 2860, goalY: 170,
+        timePar: 150, timeGold: 105,
+        qblocks: [
+          { x: 429, y: 193, hit: false },
+          { x: 564, y: 135, hit: false },
+          { x: 1344, y: 60, hit: false },
+          { x: 1964, y: 172, hit: false },
+          { x: 2654, y: 97, hit: false },
+        ],
       },
-      // ─ LEVEL 2: Highland Pass ─
       {
         name: 'HIGHLAND PASS',
-        width: 2800, bgColors: ['#1a0d28', '#2e1040'],
+        width: 3400, bgColors: ['#1a0d28', '#2e1040'],
         skyStars: true, misty: false,
         platforms: [
-          { x: 0, y: 450, w: 300, h: 60 },
-          { x: 320, y: 380, w: 80, h: 20 },
-          { x: 440, y: 320, w: 80, h: 20 },
-          { x: 560, y: 260, w: 80, h: 20 },
-          { x: 680, y: 320, w: 80, h: 20 },
-          { x: 800, y: 380, w: 80, h: 20 },
-          { x: 920, y: 310, w: 100, h: 20 },
-          { x: 1080, y: 240, w: 100, h: 20 },
-          { x: 1240, y: 310, w: 100, h: 20 },
-          { x: 1380, y: 380, w: 120, h: 20 },
-          { x: 1540, y: 300, w: 100, h: 20 },
-          { x: 1700, y: 220, w: 100, h: 20 },
-          { x: 1840, y: 300, w: 100, h: 20 },
-          { x: 1980, y: 380, w: 120, h: 20 },
-          { x: 2140, y: 300, w: 100, h: 20 },
-          { x: 2300, y: 220, w: 100, h: 20 },
-          { x: 2450, y: 300, w: 150, h: 20 },
-          { x: 600, y: 450, w: 2200, h: 60 }, // second ground section
+          { x: 0, y: 450, w: 220, h: 60 },
+          { x: 280, y: 395, w: 55, h: 18 },
+          { x: 400, y: 340, w: 55, h: 18 },
+          { x: 515, y: 285, w: 55, h: 18 },
+          { x: 630, y: 230, w: 55, h: 18 },
+          { x: 745, y: 175, w: 55, h: 18 },
+          { x: 860, y: 230, w: 55, h: 18 },
+          { x: 975, y: 285, w: 55, h: 18 },
+          { x: 1090, y: 340, w: 55, h: 18 },
+          { x: 1200, y: 450, w: 160, h: 60 },
+          { x: 1430, y: 380, w: 50, h: 18 },
+          { x: 1545, y: 315, w: 50, h: 18 },
+          { x: 1655, y: 250, w: 50, h: 18 },
+          { x: 1765, y: 185, w: 50, h: 18 },
+          { x: 1875, y: 250, w: 50, h: 18 },
+          { x: 1985, y: 315, w: 50, h: 18 },
+          { x: 2095, y: 380, w: 50, h: 18 },
+          { x: 2250, y: 450, w: 140, h: 60 },
+          { x: 2460, y: 370, w: 60, h: 18 },
+          { x: 2590, y: 300, w: 60, h: 18 },
+          { x: 2720, y: 235, w: 60, h: 18 },
+          { x: 2850, y: 170, w: 60, h: 18 },
+          { x: 2980, y: 235, w: 60, h: 18 },
+          { x: 3110, y: 300, w: 60, h: 18 },
+          { x: 3220, y: 370, w: 150, h: 18 },
         ],
         enemies: [
-          { x: 330, y: 352, v: 1, hp: 4 }, { x: 450, y: 292, v: 1, hp: 4 },
-          { x: 570, y: 232, v: 2, hp: 5 }, { x: 810, y: 352, v: 0, hp: 4 },
-          { x: 930, y: 282, v: 1, hp: 5 }, { x: 1090, y: 212, v: 2, hp: 6 },
-          { x: 1250, y: 282, v: 1, hp: 5 }, { x: 1400, y: 352, v: 0, hp: 4 },
-          { x: 1560, y: 272, v: 2, hp: 6 }, { x: 1720, y: 192, v: 2, hp: 7 },
-          { x: 1860, y: 272, v: 1, hp: 5 }, { x: 2000, y: 352, v: 0, hp: 4 },
-          { x: 2160, y: 272, v: 2, hp: 6 }, { x: 2320, y: 192, v: 2, hp: 7 },
+          { x: 40, y: 418, v: 3, hp: 3 },
+          { x: 520, y: 258, v: 4, hp: 4 },
+          { x: 635, y: 203, v: 1, hp: 4 },
+          { x: 750, y: 148, v: 3, hp: 4 },
+          { x: 865, y: 203, v: 4, hp: 4 },
+          { x: 1250, y: 418, v: 5, hp: 5 },
+          { x: 1440, y: 353, v: 3, hp: 5 },
+          { x: 1660, y: 223, v: 4, hp: 5 },
+          { x: 1770, y: 158, v: 5, hp: 6 },
+          { x: 2300, y: 418, v: 3, hp: 5 },
+          { x: 2470, y: 343, v: 4, hp: 6 },
+          { x: 2725, y: 208, v: 5, hp: 6 },
+          { x: 2855, y: 143, v: 4, hp: 7 },
+          { x: 2985, y: 208, v: 5, hp: 7 },
+          { x: 3230, y: 343, v: 4, hp: 7 },
         ],
         coins: [
-          { x: 340, y: 355 }, { x: 460, y: 295 }, { x: 580, y: 235 },
-          { x: 700, y: 295 }, { x: 820, y: 355 }, { x: 940, y: 285 },
-          { x: 1100, y: 215 }, { x: 1260, y: 285 }, { x: 1400, y: 355 },
-          { x: 1560, y: 275 }, { x: 1720, y: 195 }, { x: 1860, y: 275 },
-          { x: 2000, y: 355 }, { x: 2160, y: 275 }, { x: 2320, y: 195 }, { x: 2460, y: 275 },
+          { x: 284, y: 371 }, { x: 404, y: 316 }, { x: 519, y: 261 },
+          { x: 634, y: 206 }, { x: 749, y: 151 }, { x: 864, y: 206 },
+          { x: 979, y: 261 }, { x: 1094, y: 316 }, { x: 1220, y: 426 },
+          { x: 1434, y: 356 }, { x: 1549, y: 291 }, { x: 1659, y: 226 },
+          { x: 1769, y: 161 }, { x: 1879, y: 226 }, { x: 1989, y: 291 },
+          { x: 2099, y: 356 }, { x: 2464, y: 346 }, { x: 2594, y: 276 },
+          { x: 2724, y: 211 }, { x: 2854, y: 146 }, { x: 2984, y: 211 },
         ],
-        goalX: 2560, goalY: 310,
-        timePar: 150, timeGold: 110,
+        goalX: 3230, goalY: 230,
+        timePar: 190, timeGold: 140,
+        qblocks: [
+          { x: 634, y: 147, hit: false },
+          { x: 749, y: 92, hit: false },
+          { x: 1769, y: 102, hit: false },
+          { x: 2854, y: 87, hit: false },
+          { x: 3114, y: 217, hit: false },
+        ],
       },
-      // ─ LEVEL 3: Loch Doomside ─
       {
         name: 'LOCH DOOMSIDE',
-        width: 3000, bgColors: ['#060e1a', '#0d1e30'],
+        width: 3600, bgColors: ['#060e1a', '#0d1e30'],
         skyStars: true, misty: true,
         platforms: [
-          { x: 0, y: 450, w: 200, h: 60 },
-          { x: 220, y: 390, w: 70, h: 20 },
-          { x: 330, y: 330, w: 70, h: 20 },
-          { x: 440, y: 270, w: 70, h: 20 },
-          { x: 550, y: 330, w: 70, h: 20 },
-          { x: 660, y: 390, w: 70, h: 20 }, { x: 660, y: 450, w: 200, h: 60 },
-          { x: 880, y: 390, w: 70, h: 20 },
-          { x: 990, y: 310, w: 80, h: 20 },
-          { x: 1100, y: 230, w: 80, h: 20 },
-          { x: 1210, y: 310, w: 80, h: 20 },
-          { x: 1320, y: 390, w: 80, h: 20 }, { x: 1320, y: 450, w: 300, h: 60 },
-          { x: 1650, y: 380, w: 80, h: 20 },
-          { x: 1760, y: 300, w: 80, h: 20 },
-          { x: 1870, y: 220, w: 80, h: 20 },
-          { x: 1980, y: 300, w: 80, h: 20 },
-          { x: 2090, y: 380, w: 80, h: 20 }, { x: 2090, y: 450, w: 300, h: 60 },
-          { x: 2420, y: 360, w: 100, h: 20 },
-          { x: 2560, y: 280, w: 100, h: 20 },
-          { x: 2700, y: 360, w: 200, h: 20 },
+          { x: 0, y: 450, w: 160, h: 60 },
+          { x: 230, y: 405, w: 60, h: 18 },
+          { x: 360, y: 355, w: 60, h: 18 },
+          { x: 490, y: 300, w: 60, h: 18 },
+          { x: 620, y: 355, w: 60, h: 18 },
+          { x: 750, y: 410, w: 160, h: 40 },
+          { x: 990, y: 360, w: 55, h: 18 },
+          { x: 1110, y: 300, w: 55, h: 18 },
+          { x: 1235, y: 240, w: 55, h: 18 },
+          { x: 1355, y: 180, w: 55, h: 18 },
+          { x: 1480, y: 240, w: 55, h: 18 },
+          { x: 1600, y: 300, w: 55, h: 18 },
+          { x: 1355, y: 117, w: 55, h: 18 },
+          { x: 1730, y: 360, w: 60, h: 18 },
+          { x: 1855, y: 410, w: 160, h: 40 },
+          { x: 2090, y: 350, w: 55, h: 18 },
+          { x: 2210, y: 285, w: 55, h: 18 },
+          { x: 2330, y: 220, w: 55, h: 18 },
+          { x: 2450, y: 155, w: 55, h: 18 },
+          { x: 2570, y: 220, w: 55, h: 18 },
+          { x: 2690, y: 285, w: 55, h: 18 },
+          { x: 2810, y: 350, w: 55, h: 18 },
+          { x: 2450, y: 92, w: 55, h: 18 },
+          { x: 2970, y: 405, w: 160, h: 45 },
+          { x: 3200, y: 340, w: 60, h: 18 },
+          { x: 3340, y: 275, w: 60, h: 18 },
+          { x: 3450, y: 340, w: 120, h: 18 },
         ],
         enemies: [
-          { x: 230, y: 362, v: 2, hp: 5 }, { x: 450, y: 242, v: 2, hp: 6 },
-          { x: 670, y: 362, v: 1, hp: 5 }, { x: 890, y: 362, v: 2, hp: 6 },
-          { x: 1010, y: 282, v: 2, hp: 7 }, { x: 1120, y: 202, v: 2, hp: 8 },
-          { x: 1340, y: 362, v: 1, hp: 6 }, { x: 1660, y: 352, v: 2, hp: 7 },
-          { x: 1780, y: 272, v: 2, hp: 7 }, { x: 1890, y: 192, v: 2, hp: 8 },
-          { x: 2110, y: 352, v: 1, hp: 6 }, { x: 2440, y: 332, v: 2, hp: 8 },
-          { x: 2580, y: 252, v: 2, hp: 9 }, { x: 2720, y: 332, v: 2, hp: 9 },
+          { x: 20, y: 418, v: 3, hp: 3 },
+          { x: 370, y: 328, v: 4, hp: 4 },
+          { x: 500, y: 273, v: 3, hp: 5 },
+          { x: 800, y: 383, v: 5, hp: 4 },
+          { x: 1000, y: 333, v: 3, hp: 5 },
+          { x: 1120, y: 273, v: 4, hp: 5 },
+          { x: 1245, y: 213, v: 5, hp: 6 },
+          { x: 1365, y: 153, v: 4, hp: 7 },
+          { x: 1365, y: 90, v: 3, hp: 6 },
+          { x: 1740, y: 333, v: 5, hp: 6 },
+          { x: 1900, y: 383, v: 3, hp: 5 },
+          { x: 2100, y: 323, v: 4, hp: 7 },
+          { x: 2340, y: 193, v: 5, hp: 7 },
+          { x: 2460, y: 128, v: 4, hp: 8 },
+          { x: 2580, y: 193, v: 5, hp: 7 },
+          { x: 2980, y: 378, v: 3, hp: 7 },
+          { x: 3210, y: 313, v: 4, hp: 8 },
+          { x: 3350, y: 248, v: 5, hp: 9 },
         ],
         coins: [
-          { x: 235, y: 365 }, { x: 345, y: 305 }, { x: 455, y: 245 },
-          { x: 895, y: 365 }, { x: 1005, y: 285 }, { x: 1115, y: 205 },
-          { x: 1665, y: 355 }, { x: 1775, y: 275 }, { x: 1885, y: 195 },
-          { x: 2445, y: 335 }, { x: 2575, y: 255 }, { x: 2715, y: 335 },
-          { x: 2750, y: 335 }, { x: 2780, y: 335 },
+          { x: 234, y: 381 }, { x: 364, y: 331 }, { x: 494, y: 276 },
+          { x: 624, y: 331 }, { x: 760, y: 386 }, { x: 994, y: 336 },
+          { x: 1114, y: 276 }, { x: 1239, y: 216 }, { x: 1359, y: 156 },
+          { x: 1359, y: 93 }, { x: 1484, y: 216 }, { x: 1604, y: 276 },
+          { x: 2094, y: 326 }, { x: 2214, y: 261 }, { x: 2334, y: 196 },
+          { x: 2454, y: 131 }, { x: 2454, y: 68 }, { x: 2574, y: 196 },
+          { x: 2694, y: 261 }, { x: 2814, y: 326 }, { x: 2974, y: 381 },
         ],
-        goalX: 2800, goalY: 320,
-        timePar: 180, timeGold: 130,
+        goalX: 3430, goalY: 200,
+        timePar: 220, timeGold: 160,
+        qblocks: [
+          { x: 494, y: 217, hit: false },
+          { x: 1359, y: 34, hit: false },
+          { x: 2454, y: 9, hit: false },
+          { x: 2694, y: 202, hit: false },
+          { x: 3344, y: 192, hit: false },
+        ],
       },
-      // ─ LEVEL 4: The Peat Bog ─
       {
         name: 'THE PEAT BOG',
-        width: 2600, bgColors: ['#0a1408', '#142008'],
+        width: 3600, bgColors: ['#0a1408', '#142008'],
         skyStars: false, misty: true,
         platforms: [
-          { x: 0, y: 450, w: 2600, h: 60 },
-          { x: 100, y: 360, w: 100, h: 20 }, { x: 240, y: 290, w: 80, h: 20 },
-          { x: 360, y: 220, w: 100, h: 20 }, { x: 500, y: 290, w: 80, h: 20 },
-          { x: 620, y: 360, w: 100, h: 20 }, { x: 760, y: 280, w: 80, h: 20 },
-          { x: 880, y: 200, w: 100, h: 20 }, { x: 1020, y: 280, w: 80, h: 20 },
-          { x: 1140, y: 360, w: 100, h: 20 }, { x: 1280, y: 280, w: 80, h: 20 },
-          { x: 1400, y: 200, w: 120, h: 20 }, { x: 1560, y: 280, w: 80, h: 20 },
-          { x: 1680, y: 360, w: 100, h: 20 }, { x: 1820, y: 280, w: 120, h: 20 },
-          { x: 1980, y: 200, w: 100, h: 20 }, { x: 2100, y: 280, w: 100, h: 20 },
-          { x: 2240, y: 360, w: 140, h: 20 },
+          { x: 0, y: 450, w: 180, h: 60 },
+          { x: 255, y: 390, w: 55, h: 18 },
+          { x: 380, y: 325, w: 55, h: 18 },
+          { x: 505, y: 390, w: 55, h: 18 },
+          { x: 630, y: 325, w: 55, h: 18 },
+          { x: 755, y: 260, w: 55, h: 18 },
+          { x: 880, y: 195, w: 55, h: 18 },
+          { x: 1005, y: 260, w: 55, h: 18 },
+          { x: 1130, y: 325, w: 55, h: 18 },
+          { x: 1255, y: 390, w: 55, h: 18 },
+          { x: 755, y: 132, w: 55, h: 18 },
+          { x: 880, y: 132, w: 55, h: 18 },
+          { x: 1380, y: 450, w: 180, h: 60 },
+          { x: 1640, y: 380, w: 55, h: 18 },
+          { x: 1760, y: 310, w: 55, h: 18 },
+          { x: 1880, y: 240, w: 55, h: 18 },
+          { x: 2000, y: 175, w: 55, h: 18 },
+          { x: 2120, y: 240, w: 55, h: 18 },
+          { x: 2240, y: 310, w: 55, h: 18 },
+          { x: 2360, y: 380, w: 55, h: 18 },
+          { x: 2000, y: 112, w: 55, h: 18 },
+          { x: 2520, y: 450, w: 160, h: 60 },
+          { x: 2760, y: 370, w: 55, h: 18 },
+          { x: 2880, y: 300, w: 55, h: 18 },
+          { x: 3000, y: 235, w: 55, h: 18 },
+          { x: 3120, y: 170, w: 55, h: 18 },
+          { x: 3240, y: 235, w: 55, h: 18 },
+          { x: 3360, y: 300, w: 55, h: 18 },
+          { x: 3460, y: 370, w: 110, h: 18 },
         ],
         enemies: [
-          { x: 110, y: 330, v: 1, hp: 5 }, { x: 250, y: 260, v: 2, hp: 6 },
-          { x: 370, y: 190, v: 2, hp: 7 }, { x: 510, y: 260, v: 1, hp: 6 },
-          { x: 630, y: 330, v: 2, hp: 7 }, { x: 770, y: 250, v: 2, hp: 8 },
-          { x: 890, y: 170, v: 2, hp: 8 }, { x: 1030, y: 250, v: 1, hp: 7 },
-          { x: 1150, y: 330, v: 2, hp: 8 }, { x: 1290, y: 250, v: 2, hp: 8 },
-          { x: 1410, y: 170, v: 2, hp: 9 }, { x: 1570, y: 250, v: 2, hp: 9 },
-          { x: 1700, y: 330, v: 2, hp: 8 }, { x: 1840, y: 250, v: 2, hp: 9 },
-          { x: 1990, y: 170, v: 2, hp: 9 }, { x: 2250, y: 330, v: 2, hp: 10 },
+          { x: 50, y: 418, v: 3, hp: 4 },
+          { x: 265, y: 363, v: 4, hp: 5 },
+          { x: 515, y: 363, v: 3, hp: 5 },
+          { x: 640, y: 298, v: 5, hp: 6 },
+          { x: 765, y: 233, v: 4, hp: 6 },
+          { x: 765, y: 105, v: 3, hp: 6 },
+          { x: 890, y: 168, v: 4, hp: 7 },
+          { x: 1015, y: 233, v: 5, hp: 6 },
+          { x: 1440, y: 418, v: 3, hp: 5 },
+          { x: 1650, y: 353, v: 4, hp: 6 },
+          { x: 1770, y: 283, v: 5, hp: 7 },
+          { x: 1890, y: 213, v: 3, hp: 7 },
+          { x: 2010, y: 148, v: 4, hp: 8 },
+          { x: 2010, y: 85, v: 5, hp: 7 },
+          { x: 2580, y: 418, v: 3, hp: 6 },
+          { x: 2770, y: 343, v: 4, hp: 7 },
+          { x: 2890, y: 273, v: 5, hp: 8 },
+          { x: 3010, y: 208, v: 4, hp: 8 },
+          { x: 3130, y: 143, v: 5, hp: 9 },
+          { x: 3470, y: 343, v: 4, hp: 9 },
         ],
         coins: [
-          { x: 120, y: 335 }, { x: 255, y: 265 }, { x: 375, y: 195 }, { x: 515, y: 265 },
-          { x: 635, y: 335 }, { x: 775, y: 255 }, { x: 895, y: 175 }, { x: 1035, y: 255 },
-          { x: 1155, y: 335 }, { x: 1295, y: 255 }, { x: 1415, y: 175 }, { x: 1575, y: 255 },
-          { x: 1695, y: 335 }, { x: 1840, y: 255 }, { x: 1995, y: 175 },
+          { x: 259, y: 366 }, { x: 384, y: 301 }, { x: 509, y: 366 },
+          { x: 634, y: 301 }, { x: 759, y: 236 }, { x: 759, y: 108 },
+          { x: 884, y: 171 }, { x: 884, y: 108 }, { x: 1009, y: 236 },
+          { x: 1134, y: 301 }, { x: 1259, y: 366 }, { x: 1420, y: 426 },
+          { x: 1644, y: 356 }, { x: 1764, y: 286 }, { x: 1884, y: 216 },
+          { x: 2004, y: 151 }, { x: 2004, y: 88 }, { x: 2124, y: 216 },
+          { x: 2244, y: 286 }, { x: 2364, y: 356 }, { x: 2764, y: 346 },
+          { x: 3004, y: 211 }, { x: 3124, y: 146 },
         ],
-        goalX: 2400, goalY: 360,
-        timePar: 150, timeGold: 100,
+        goalX: 3460, goalY: 230,
+        timePar: 240, timeGold: 175,
+        qblocks: [
+          { x: 759, y: 49, hit: false },
+          { x: 884, y: 49, hit: false },
+          { x: 2004, y: 29, hit: false },
+          { x: 3004, y: 152, hit: false },
+          { x: 3124, y: 87, hit: false },
+        ],
       },
-      // ─ LEVEL 5: Castle Siege ─
       {
         name: 'CASTLE SIEGE',
-        width: 3200, bgColors: ['#120810', '#200e20'],
+        width: 4000, bgColors: ['#120810', '#200e20'],
         skyStars: true, misty: false,
         platforms: [
-          { x: 0, y: 450, w: 3200, h: 60 },
-          { x: 120, y: 360, w: 120, h: 20 }, { x: 280, y: 280, w: 100, h: 20 },
-          { x: 420, y: 200, w: 100, h: 20 }, { x: 560, y: 280, w: 100, h: 20 },
-          { x: 700, y: 360, w: 100, h: 20 }, { x: 840, y: 260, w: 100, h: 20 },
-          { x: 980, y: 160, w: 120, h: 20 }, { x: 1140, y: 240, w: 100, h: 20 },
-          { x: 1280, y: 320, w: 100, h: 20 }, { x: 1420, y: 220, w: 100, h: 20 },
-          { x: 1560, y: 140, w: 120, h: 20 }, { x: 1720, y: 220, w: 100, h: 20 },
-          { x: 1860, y: 300, w: 100, h: 20 }, { x: 2000, y: 200, w: 120, h: 20 },
-          { x: 2160, y: 120, w: 120, h: 20 }, { x: 2320, y: 200, w: 100, h: 20 },
-          { x: 2460, y: 300, w: 100, h: 20 }, { x: 2600, y: 200, w: 120, h: 20 },
-          { x: 2760, y: 300, w: 160, h: 20 }, { x: 2960, y: 360, w: 200, h: 20 },
+          { x: 0, y: 450, w: 4000, h: 60 },
+          { x: 180, y: 390, w: 65, h: 18 },
+          { x: 310, y: 325, w: 65, h: 18 },
+          { x: 440, y: 260, w: 65, h: 18 },
+          { x: 570, y: 195, w: 65, h: 18 },
+          { x: 700, y: 260, w: 65, h: 18 },
+          { x: 830, y: 325, w: 65, h: 18 },
+          { x: 965, y: 390, w: 65, h: 18 },
+          { x: 1100, y: 325, w: 55, h: 18 },
+          { x: 1215, y: 260, w: 55, h: 18 },
+          { x: 1330, y: 195, w: 55, h: 18 },
+          { x: 1445, y: 130, w: 55, h: 18 },
+          { x: 1560, y: 195, w: 55, h: 18 },
+          { x: 1675, y: 260, w: 55, h: 18 },
+          { x: 1790, y: 325, w: 55, h: 18 },
+          { x: 570, y: 132, w: 65, h: 18 },
+          { x: 1445, y: 67, w: 55, h: 18 },
+          { x: 1950, y: 385, w: 55, h: 18 },
+          { x: 2070, y: 315, w: 55, h: 18 },
+          { x: 2190, y: 250, w: 55, h: 18 },
+          { x: 2310, y: 185, w: 55, h: 18 },
+          { x: 2430, y: 120, w: 55, h: 18 },
+          { x: 2550, y: 185, w: 55, h: 18 },
+          { x: 2670, y: 250, w: 55, h: 18 },
+          { x: 2790, y: 315, w: 55, h: 18 },
+          { x: 2910, y: 380, w: 55, h: 18 },
+          { x: 2430, y: 57, w: 55, h: 18 },
+          { x: 3080, y: 320, w: 60, h: 18 },
+          { x: 3210, y: 255, w: 60, h: 18 },
+          { x: 3340, y: 190, w: 60, h: 18 },
+          { x: 3470, y: 125, w: 60, h: 18 },
+          { x: 3600, y: 190, w: 60, h: 18 },
+          { x: 3730, y: 255, w: 60, h: 18 },
+          { x: 3850, y: 310, w: 120, h: 18 },
         ],
         enemies: [
-          { x: 130, y: 330, v: 2, hp: 6 }, { x: 290, y: 250, v: 2, hp: 7 },
-          { x: 430, y: 170, v: 2, hp: 8 }, { x: 580, y: 250, v: 2, hp: 7 },
-          { x: 710, y: 330, v: 2, hp: 8 }, { x: 850, y: 230, v: 2, hp: 9 },
-          { x: 990, y: 130, v: 2, hp: 10 }, { x: 1160, y: 210, v: 2, hp: 9 },
-          { x: 1300, y: 290, v: 2, hp: 9 }, { x: 1440, y: 190, v: 2, hp: 10 },
-          { x: 1580, y: 110, v: 2, hp: 11 }, { x: 1740, y: 190, v: 2, hp: 10 },
-          { x: 1880, y: 270, v: 2, hp: 10 }, { x: 2020, y: 170, v: 2, hp: 11 },
-          { x: 2180, y: 90, v: 2, hp: 12 }, { x: 2340, y: 170, v: 2, hp: 11 },
-          { x: 2480, y: 270, v: 2, hp: 10 }, { x: 2620, y: 170, v: 2, hp: 11 },
-          { x: 2780, y: 270, v: 2, hp: 12 }, { x: 2980, y: 330, v: 2, hp: 12 },
+          { x: 190, y: 418, v: 3, hp: 5 }, { x: 450, y: 233, v: 4, hp: 6 },
+          { x: 580, y: 168, v: 5, hp: 6 }, { x: 580, y: 105, v: 3, hp: 5 },
+          { x: 710, y: 233, v: 4, hp: 6 }, { x: 840, y: 298, v: 5, hp: 6 },
+          { x: 975, y: 363, v: 3, hp: 6 }, { x: 1110, y: 298, v: 4, hp: 7 },
+          { x: 1225, y: 233, v: 5, hp: 7 }, { x: 1340, y: 168, v: 4, hp: 7 },
+          { x: 1455, y: 103, v: 5, hp: 8 }, { x: 1455, y: 40, v: 3, hp: 7 },
+          { x: 1565, y: 168, v: 4, hp: 8 }, { x: 1680, y: 233, v: 5, hp: 7 },
+          { x: 1960, y: 358, v: 3, hp: 7 }, { x: 2080, y: 288, v: 4, hp: 8 },
+          { x: 2200, y: 223, v: 5, hp: 8 }, { x: 2320, y: 158, v: 4, hp: 9 },
+          { x: 2440, y: 93, v: 5, hp: 9 }, { x: 2440, y: 30, v: 3, hp: 8 },
+          { x: 2560, y: 158, v: 4, hp: 9 }, { x: 2680, y: 223, v: 5, hp: 9 },
+          { x: 2920, y: 353, v: 3, hp: 8 }, { x: 3090, y: 293, v: 4, hp: 10 },
+          { x: 3220, y: 228, v: 5, hp: 10 }, { x: 3350, y: 163, v: 4, hp: 11 },
+          { x: 3480, y: 98, v: 5, hp: 11 }, { x: 3610, y: 163, v: 4, hp: 11 },
+          { x: 3740, y: 228, v: 5, hp: 10 }, { x: 3860, y: 283, v: 3, hp: 12 },
+          { x: 3900, y: 283, v: 4, hp: 12 },
         ],
         coins: [
-          { x: 135, y: 335 }, { x: 295, y: 255 }, { x: 435, y: 175 }, { x: 575, y: 255 },
-          { x: 720, y: 335 }, { x: 855, y: 235 }, { x: 995, y: 135 }, { x: 1160, y: 215 },
-          { x: 1300, y: 295 }, { x: 1445, y: 195 }, { x: 1575, y: 115 }, { x: 1735, y: 195 },
-          { x: 1875, y: 275 }, { x: 2015, y: 175 }, { x: 2175, y: 95 }, { x: 2335, y: 175 },
-          { x: 2475, y: 275 }, { x: 2615, y: 175 }, { x: 2775, y: 275 },
+          { x: 184, y: 366 }, { x: 314, y: 301 }, { x: 444, y: 236 },
+          { x: 574, y: 171 }, { x: 574, y: 108 }, { x: 704, y: 236 },
+          { x: 834, y: 301 }, { x: 969, y: 366 }, { x: 1104, y: 301 },
+          { x: 1219, y: 236 }, { x: 1334, y: 171 }, { x: 1449, y: 106 },
+          { x: 1449, y: 43 }, { x: 1564, y: 171 }, { x: 1679, y: 236 },
+          { x: 1954, y: 361 }, { x: 2074, y: 291 }, { x: 2194, y: 226 },
+          { x: 2314, y: 161 }, { x: 2434, y: 96 }, { x: 2434, y: 33 },
+          { x: 2554, y: 161 }, { x: 2674, y: 226 }, { x: 2794, y: 291 },
+          { x: 3344, y: 166 }, { x: 3474, y: 101 }, { x: 3604, y: 166 },
+          { x: 3734, y: 231 }, { x: 3854, y: 286 },
         ],
-        goalX: 3050, goalY: 330,
-        timePar: 200, timeGold: 140,
+        goalX: 3850, goalY: 170,
+        timePar: 300, timeGold: 220,
+        qblocks: [
+          { x: 574, y: 49, hit: false },
+          { x: 1449, y: -16, hit: false },
+          { x: 2434, y: -26, hit: false },
+          { x: 3474, y: 42, hit: false },
+          { x: 3734, y: 172, hit: false },
+        ],
       },
-    ];
-
-    // ═══════════════════════════════════════════════════════
+    ]    // ═══════════════════════════════════════════════════════
     //  UI CONTROLLER
     // ═══════════════════════════════════════════════════════
     const UI = {
@@ -1346,7 +1769,10 @@
       const ld = LEVELS[lvl - 1];
       camera = { x: 0, y: 0 };
       goalRect = { x: ld.goalX, y: ld.goalY, w: 100, h: 140, triggered: false };
-      projectiles = []; particles = [];
+      projectiles = []; particles = []; powerups = []; enemyProjectiles = [];
+
+      // Deep-copy qblocks so hit state resets each play
+      ld.qblocks = (ld.qblocks || []).map(b => ({ ...b, hit: false, bumpTimer: 0 }));
 
       player = {
         x: 60, y: 380, vx: 0, vy: 0,
@@ -1355,14 +1781,20 @@
         shieldOn: false, shieldTimer: 0,
         chargeOn: false, chargeTimer: 0,
         frame: 0, walkFrame: 0,
-        cooldowns: { shoot: 0, skirl: 0, charge: 0, drone: 0, shield: 0 },
-        CD_MAX: { shoot: 18, skirl: 200, charge: 260, drone: 320, shield: 380 },
+        rapidFire: 0, // frames remaining for rapid-fire powerup
+        jumpBuffer: 0,  // frames remaining for buffered jump input
+        coyoteTimer: 0, // frames remaining for coyote-time jump grace
+        cooldowns: { shoot: 0, skirl: 0, charge: 0, drone: 0, shield: 0, heal: 0 },
+        CD_MAX: { shoot: 18, skirl: 200, charge: 260, drone: 320, shield: 380, heal: 480 },
       };
 
       enemies = ld.enemies.map(e => ({
         ...e, maxHp: e.hp, vy: 0,
         vx: (Math.random() > .5 ? 1 : -1) * (0.7 + Math.random() * .5),
         onGround: false, stun: 0, dead: false,
+        jumpTimer: Math.floor(Math.random() * 120), // for jumpers
+        shootTimer: Math.floor(Math.random() * 180), // for shooters
+        chargeTimer2: 0, charging: false, // for chargers
       }));
 
       collectibles = ld.coins.map(c => ({ ...c, collected: false, type: 'coin' }));
@@ -1429,11 +1861,34 @@
 
       if (p.chargeOn) p.vx = p.facingRight ? 10 : -10;
 
-      // Jump
-      if ((JP['z'] || JP['Z'] || JP['ArrowUp']) && p.jumpsLeft > 0) {
-        const isDouble = !p.onGround && p.jumpsLeft === 1;
+      // ── JUMP BUFFER + COYOTE TIME ──
+      // Jump buffer: store input for up to 10 frames (allows pressing slightly early)
+      if (JP['z'] || JP['Z'] || JP['ArrowUp']) p.jumpBuffer = 10;
+      if (p.jumpBuffer > 0) p.jumpBuffer--;
+
+      // Coyote time: p.onGround was set by last frame's resolveVsPlats
+      // Allow a 6-frame grace window after walking off a ledge
+      if (p.onGround) {
+        p.coyoteTimer = 6;
+      } else if (p.coyoteTimer > 0) {
+        p.coyoteTimer--;
+      }
+
+      // First-jump available if: grounded, or within coyote window (and haven't spent jumps)
+      const canFirstJump = p.onGround || (p.coyoteTimer > 0 && p.jumpsLeft >= 2);
+      // Air jump available if: past coyote window but still have a jump counter
+      const canAirJump = !p.onGround && p.coyoteTimer <= 0 && p.jumpsLeft >= 1;
+
+      if (p.jumpBuffer > 0 && (canFirstJump || canAirJump)) {
+        const isDouble = canAirJump && !canFirstJump;
         p.vy = JFORCE + (isDouble ? 1 : 0);
-        p.jumpsLeft--;
+        p.jumpBuffer = 0;
+        if (canFirstJump) {
+          p.jumpsLeft = 1;   // first jump used; one air jump still available
+          p.coyoteTimer = 0; // consume coyote window
+        } else {
+          p.jumpsLeft = 0;   // double jump used; exhausted
+        }
         if (isDouble) {
           sfx('kilt');
           spawnPart(p.x + 16, p.y + 30, '#1a5c2e', 10, 2.5);
@@ -1443,25 +1898,33 @@
       }
 
       // ── ABILITIES ──
-      if ((JP['x'] || JP['X']) && p.cooldowns.shoot <= 0) {
+      // Rapid fire: auto-fire when key held; otherwise just on press
+      const shootTrigger = p.rapidFire > 0 ? (K['q'] || K['Q']) : (JP['q'] || JP['Q']);
+      if (shootTrigger && p.cooldowns.shoot <= 0) {
         const dir = p.facingRight ? 1 : -1;
-        projectiles.push({ x: p.x + (p.facingRight ? 38 : -8), y: p.y + 20, vx: dir * 10, vy: -0.5, type: 'note', life: 90, dmg: 1 });
-        sfx('shoot'); p.cooldowns.shoot = p.CD_MAX.shoot;
+        const noteType = p.activeNote || 'note';
+        projectiles.push({
+          x: p.x + (p.facingRight ? 38 : -8), y: p.y + 20,
+          vx: dir * 10, vy: -0.5,
+          type: noteType, life: 120, dmg: noteType === 'bomb' ? 3 : 1,
+        });
+        sfx('shoot');
+        p.cooldowns.shoot = p.rapidFire > 0 ? 5 : p.CD_MAX.shoot;
       }
-      if ((JP['s'] || JP['S']) && p.cooldowns.skirl <= 0) {
+      if ((JP['w'] || JP['W']) && p.cooldowns.skirl <= 0) {
         for (let a = 0; a < Math.PI * 2; a += Math.PI / 5)
           projectiles.push({ x: p.x + 16, y: p.y + 20, vx: Math.cos(a) * 6, vy: Math.sin(a) * 6, type: 'skirl', life: 45, dmg: 2 });
         spawnPart(p.x + 16, p.y + 20, '#00aaff', 20, 5);
         sfx('skirl'); p.cooldowns.skirl = p.CD_MAX.skirl;
         floatText('SKIRL BLAST!', p.x - camera.x - 40, p.y - camera.y - 20, '#00aaff');
       }
-      if ((JP['d'] || JP['D']) && p.cooldowns.charge <= 0) {
+      if ((JP['e'] || JP['E']) && p.cooldowns.charge <= 0) {
         p.chargeOn = true; p.chargeTimer = 32; p.invincible = 38;
         spawnPart(p.x + 16, p.y + 20, '#ff6600', 14, 4);
         sfx('charge'); p.cooldowns.charge = p.CD_MAX.charge;
         floatText('HIGHLAND CHARGE!', p.x - camera.x - 40, p.y - camera.y - 20, '#ff6600');
       }
-      if ((JP['f'] || JP['F']) && p.cooldowns.drone <= 0) {
+      if ((JP['r'] || JP['R']) && p.cooldowns.drone <= 0) {
         const dir = p.facingRight ? 1 : -1;
         for (let i = 0; i < 6; i++)
           projectiles.push({ x: p.x + 16, y: p.y + 20, vx: dir * (7 + i * .6), vy: (Math.random() - .5) * 2, type: 'drone', life: 55 + i * 6, dmg: 1, delay: i * 5 });
@@ -1474,11 +1937,21 @@
         sfx('shield'); p.cooldowns.shield = p.CD_MAX.shield;
         floatText('THISTLE SHIELD!', p.x - camera.x - 40, p.y - camera.y - 20, '#7fff00');
       }
+      if ((JP['s'] || JP['S']) && p.cooldowns.heal <= 0 && p.hp < p.maxHp) {
+        p.hp = Math.min(p.maxHp, p.hp + 1);
+        spawnPart(p.x + 16, p.y + 25, '#ff4488', 14, 3);
+        spawnPart(p.x + 16, p.y + 25, '#fff', 8, 2);
+        sfx('powerup_collect');
+        p.cooldowns.heal = p.CD_MAX.heal;
+        floatText('+1 HP ❤️', p.x - camera.x - 30, p.y - camera.y - 20, '#ff4488');
+        updateHUD();
+      }
 
       // Timers
       if (p.chargeTimer > 0) { p.chargeTimer--; if (p.chargeTimer <= 0) p.chargeOn = false; }
       if (p.shieldTimer > 0) { p.shieldTimer--; if (p.shieldTimer <= 0) p.shieldOn = false; }
       if (p.invincible > 0) p.invincible--;
+      if (p.rapidFire > 0) { p.rapidFire--; if (p.rapidFire <= 0) { p.activeNote = 'note'; } }
       for (const k in p.cooldowns) if (p.cooldowns[k] > 0) p.cooldowns[k]--;
 
       // Physics
@@ -1489,8 +1962,37 @@
       p.x = Math.max(0, Math.min(p.x, ld.width - PW));
 
       resolveVsPlats(p, PW, PH, ld.platforms);
+      // Q-blocks are solid — resolve player vs active (unhit) qblocks
+      // IMPORTANT: save onGround before second call, which resets it internally
+      const groundedOnPlatform = p.onGround;
+      const activeQbPlats = (ld.qblocks || []).filter(qb => !qb.hit).map(qb => ({ x: qb.x, y: qb.y, w: 28, h: 28 }));
+      if (activeQbPlats.length) resolveVsPlats(p, PW, PH, activeQbPlats);
+      p.onGround = p.onGround || groundedOnPlatform; // grounded if on EITHER platforms OR qblocks
       if (p.onGround) p.jumpsLeft = 2;
-      if (p.y > H + 100) p.hp = 0;
+      if (p.y > H + 100 && p.hp > 0) { sfx('player_die'); p.hp = 0; }
+
+      // ── QBLOCK HEAD-BUMP (jump into block from below) ──
+      // Use pre-resolve upward velocity stored before physics resolving zeroed it
+      if (p.vy <= 2 && p.vy > -20) { // check whenever player is in/near a block region
+        const headX = p.x + 4, headW = PW - 8;
+        const headY = p.y;
+        for (const qb of ld.qblocks) {
+          if (qb.hit) continue;
+          if (headX + headW <= qb.x || headX >= qb.x + 28) continue;
+          const blockBottom = qb.y + 28;
+          // Player's head is right at the block bottom (solid resolve just pushed them down)
+          if (headY >= qb.y + 26 && headY <= blockBottom + 6) {
+            qb.hit = true; qb.bumpTimer = 10;
+            p.vy = 2;
+            const puType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+            powerups.push({ x: qb.x + 4, y: qb.y - 28, vy: -4, type: puType, life: 600 });
+            sfx('powerup_spawn');
+            spawnPart(qb.x + 14, qb.y, '#f5c518', 12, 3.5);
+            floatText('?!', qb.x - camera.x + 4, qb.y - camera.y - 10, '#f5c518');
+            break;
+          }
+        }
+      }
 
       p.frame++;
       if (Math.abs(p.vx) > 0.5 && p.onGround) p.walkFrame++;
@@ -1500,11 +2002,75 @@
     //  UPDATE PROJECTILES
     // ═══════════════════════════════════════════════════════
     function updateProjectiles() {
+      const ld = LEVELS[currentLevel - 1];
       projectiles = projectiles.filter(proj => {
         if ((proj.delay || 0) > 0) { proj.delay--; return true; }
         proj.x += proj.vx; proj.y += proj.vy; proj.life--;
         if (proj.life <= 0 || proj.y > H + 100 || proj.y < -100) return false;
-        // Hit enemies
+
+        // ── QBLOCK COLLISION (only for player projectiles going upward toward blocks) ──
+        if ((proj.type === 'note' || proj.type === 'bignote' || proj.type === 'bomb') && proj.vy <= 0) {
+          for (const qb of ld.qblocks) {
+            if (qb.hit) continue;
+            if (overlap(proj.x - 8, proj.y - 8, 16, 16, qb.x, qb.y, 28, 28)) {
+              qb.hit = true; qb.bumpTimer = 10;
+              // Spawn a random powerup item above the block
+              const puType = POWERUP_TYPES[Math.floor(Math.random() * POWERUP_TYPES.length)];
+              powerups.push({ x: qb.x + 4, y: qb.y - 24, vy: -3, type: puType, life: 600 });
+              sfx('powerup_spawn');
+              spawnPart(qb.x + 14, qb.y, '#f5c518', 10, 3);
+              return false;
+            }
+          }
+        }
+
+        // ── BOMB AOE EXPLOSION on hitting an enemy ──
+        if (proj.type === 'bomb') {
+          const BOMB_R = 80;
+          let hit = false;
+          for (const e of enemies) {
+            if (e.dead) continue;
+            if (overlap(proj.x - 10, proj.y - 10, 20, 20, e.x, e.y, 32, 44)) {
+              hit = true; break;
+            }
+          }
+          if (hit) {
+            // AOE: damage ALL enemies in radius
+            sfx('bomb_explode');
+            for (const e of enemies) {
+              if (e.dead) continue;
+              const dx = (e.x + 16) - proj.x, dy = (e.y + 22) - proj.y;
+              if (dx * dx + dy * dy < BOMB_R * BOMB_R) {
+                e.hp -= proj.dmg; e.stun = 25;
+                spawnPart(e.x + 16, e.y + 16, '#ff6600', 8, 4);
+              }
+            }
+            // Big explosion particles
+            spawnPart(proj.x, proj.y, '#ff9900', 28, 7);
+            spawnPart(proj.x, proj.y, '#ff3300', 18, 5);
+            spawnPart(proj.x, proj.y, '#ffff00', 12, 6);
+            floatText('💥 BOOM!', proj.x - camera.x - 30, proj.y - camera.y - 30, '#ff6600');
+            return false;
+          }
+        }
+
+        // ── BIGNOTE: grow as it travels, hits first enemy ──
+        if (proj.type === 'bignote') {
+          proj.scale = (proj.scale || 1) + 0.05;
+          if (proj.scale > 3.5) proj.scale = 3.5;
+          const r = 6 * proj.scale;
+          for (const e of enemies) {
+            if (e.dead) continue;
+            if (overlap(proj.x - r, proj.y - r, r * 2, r * 2, e.x, e.y, 32, 44)) {
+              e.hp -= proj.dmg; e.stun = 18;
+              spawnPart(e.x + 16, e.y + 16, '#f5c518', 8, 3);
+              return false;
+            }
+          }
+          return true;
+        }
+
+        // ── STANDARD ENEMY HIT ──
         for (const e of enemies) {
           if (e.dead) continue;
           if (overlap(proj.x - 6, proj.y - 6, 12, 12, e.x, e.y, 32, 44)) {
@@ -1515,6 +2081,54 @@
         }
         return true;
       });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  UPDATE POWERUP ITEMS
+    // ═══════════════════════════════════════════════════════
+    function updatePowerups() {
+      powerups = powerups.filter(pu => {
+        pu.vy += 0.25; if (pu.vy > 4) pu.vy = 4;
+        pu.y += pu.vy; pu.life--;
+
+        // Land on platforms
+        const ld = LEVELS[currentLevel - 1];
+        for (const plat of ld.platforms) {
+          if (overlap(pu.x, pu.y, 24, 24, plat.x, plat.y, plat.w, plat.h)) {
+            pu.y = plat.y - 24; pu.vy = 0;
+          }
+        }
+        if (pu.life <= 0) return false;
+
+        // Player collect
+        if (overlap(player.x, player.y, PW, PH, pu.x, pu.y, 24, 24)) {
+          sfx('powerup_collect');
+          score += 500;
+          updateHUD();
+          if (pu.type === 'rapid') {
+            player.rapidFire = 300; // 5 seconds at 60fps
+            player.activeNote = 'note';
+            floatText('🎵 RAPID FIRE!', pu.x - camera.x - 40, pu.y - camera.y - 20, '#ff4488');
+          } else if (pu.type === 'big') {
+            player.activeNote = 'bignote';
+            player.rapidFire = 300;
+            floatText('🎵 BIG NOTES!', pu.x - camera.x - 40, pu.y - camera.y - 20, '#44ffcc');
+          } else if (pu.type === 'bomb') {
+            player.activeNote = 'bomb';
+            player.rapidFire = 300;
+            floatText('💣 BOMB NOTES!', pu.x - camera.x - 40, pu.y - camera.y - 20, '#ff8800');
+          }
+          spawnPart(pu.x + 12, pu.y + 12, '#f5c518', 18, 5);
+          return false;
+        }
+        return true;
+      });
+
+      // Animate qblock bump timers
+      const ld = LEVELS[currentLevel - 1];
+      for (const qb of ld.qblocks) {
+        if (qb.bumpTimer > 0) qb.bumpTimer--;
+      }
     }
 
     // ═══════════════════════════════════════════════════════
@@ -1534,21 +2148,86 @@
         }
         if (e.stun > 0) { e.stun--; continue; }
 
-        e.x += e.vx;
-        if (e.x < 0 || e.x + 32 > ld.width) e.vx *= -1;
+        // ── VARIANT-SPECIFIC AI ──
+        const spd = e.v === 5 ? (e.charging ? 5 : 1) // charger: slow patrol, fast charge
+          : (0.7 + Math.random() * 0);
 
-        // edge detect
-        let safe = false;
-        for (const p of ld.platforms) {
-          const checkX = e.vx > 0 ? e.x + 32 : e.x;
-          if (e.y + 44 >= p.y && e.y + 44 <= p.y + 10 && checkX >= p.x && checkX <= p.x + p.w) { safe = true; break; }
+        // JUMPER (v=3): jump periodically
+        if (e.v === 3) {
+          e.jumpTimer = (e.jumpTimer || 0) - 1;
+          if (e.jumpTimer <= 0 && e.onGround) {
+            e.vy = JFORCE * 0.75; // shorter jump than player
+            e.jumpTimer = 120 + Math.floor(Math.random() * 80);
+          }
         }
-        if (!safe) e.vx *= -1;
+
+        // SHOOTER (v=4): fire at player periodically
+        if (e.v === 4) {
+          e.shootTimer = (e.shootTimer || 0) - 1;
+          const dx = player.x - e.x, dy = player.y - e.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (e.shootTimer <= 0 && dist < 500 && e.onGround) {
+            const speed = 4.5;
+            const nx = dx / dist, ny = dy / dist;
+            enemyProjectiles.push({
+              x: e.x + 16, y: e.y + 10,
+              vx: nx * speed, vy: ny * speed - 0.5,
+              life: 120, fromEnemy: true,
+            });
+            sfx('hit'); // drum-beat thud sound
+            spawnPart(e.x + 16, e.y + 8, '#ff6600', 5, 2.5);
+            e.shootTimer = 180 + Math.floor(Math.random() * 60);
+          }
+        }
+
+        // CHARGER (v=5): sprint toward player when in range
+        if (e.v === 5) {
+          e.chargeTimer2 = (e.chargeTimer2 || 0) - 1;
+          const dx = player.x - e.x;
+          const dist = Math.abs(dx);
+          if (!e.charging && dist < 300 && e.chargeTimer2 <= 0) {
+            e.charging = true;
+            e.vx = (dx > 0 ? 1 : -1) * 5;
+            e.chargeTimer2 = 50;
+            spawnPart(e.x + 16, e.y + 22, '#00e8ff', 8, 3);
+          }
+          if (e.charging && e.chargeTimer2 <= 0) {
+            e.charging = false;
+            e.vx = (Math.random() > .5 ? 1 : -1) * 1.2;
+            e.chargeTimer2 = 120 + Math.floor(Math.random() * 60); // cooldown before next charge
+          }
+        }
+
+        // Normal movement velocity adjustments by variant
+        const baseSpeed = e.v === 5
+          ? (e.charging ? Math.abs(e.vx) : 1.2)
+          : e.v === 4 ? 0.9
+            : e.v === 3 ? 1.6
+              : (0.7 + e.v * 0.3);
+
+        if (e.v !== 5 || !e.charging) {
+          // Clamp walk speed
+          if (Math.abs(e.vx) < baseSpeed * 0.5) e.vx = (e.vx >= 0 ? 1 : -1) * baseSpeed;
+          if (Math.abs(e.vx) > baseSpeed * 1.2) e.vx = Math.sign(e.vx) * baseSpeed * 1.2;
+        }
+
+        e.x += e.vx;
+        if (e.x < 0 || e.x + 32 > ld.width) { e.vx *= -1; e.charging = false; }
+
+        // edge detect (chargers ignore it during charge)
+        if (!e.charging) {
+          let safe = false;
+          for (const p of ld.platforms) {
+            const checkX = e.vx > 0 ? e.x + 32 : e.x;
+            if (e.y + 44 >= p.y && e.y + 44 <= p.y + 10 && checkX >= p.x && checkX <= p.x + p.w) { safe = true; break; }
+          }
+          if (!safe) e.vx *= -1;
+        }
 
         e.vy = (e.vy || 0) + GRAV * .5; e.vy = Math.min(e.vy, 16);
         e.y += e.vy;
         resolveVsPlats(e, 32, 44, ld.platforms);
-        if (e.onGround) e.vy = 0;
+        if (e.onGround) { e.vy = 0; }
         if (e.y > H + 200) { e.dead = true; continue; }
 
         // Charge kill
@@ -1571,6 +2250,36 @@
           spawnPart(player.x + 16, player.y + 25, '#7fff00', 8, 4);
         }
       }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  UPDATE ENEMY PROJECTILES
+    // ═══════════════════════════════════════════════════════
+    function updateEnemyProjectiles() {
+      enemyProjectiles = enemyProjectiles.filter(ep => {
+        ep.x += ep.vx; ep.y += ep.vy;
+        ep.vy += GRAV * 0.3; // slight gravity
+        ep.life--;
+        if (ep.life <= 0 || ep.y > H + 100 || ep.x < -100 || ep.x > LEVELS[currentLevel - 1].width + 100) return false;
+
+        // Hit player
+        if (!player.shieldOn && player.invincible <= 0 &&
+          overlap(player.x, player.y, PW, PH, ep.x - 6, ep.y - 6, 12, 12)) {
+          player.hp--; player.invincible = 100;
+          sfx('hit');
+          spawnPart(player.x + 16, player.y + 25, '#ff6600', 10, 4);
+          updateHUD();
+          if (player.hp <= 0) sfx('player_die');
+          spawnPart(ep.x, ep.y, '#ff6600', 6, 3);
+          return false;
+        }
+        // Shield deflect
+        if (player.shieldOn && overlap(player.x - 4, player.y - 4, PW + 8, PH + 8, ep.x - 6, ep.y - 6, 12, 12)) {
+          spawnPart(ep.x, ep.y, '#7fff00', 8, 4);
+          return false;
+        }
+        return true;
+      });
     }
 
     // ═══════════════════════════════════════════════════════
@@ -1633,11 +2342,9 @@
     function updateCamera() {
       const ld = LEVELS[currentLevel - 1];
       const tx = player.x - W / 2 + PW / 2;
-      const ty = player.y - H / 2 + PH / 2;
       camera.x += (tx - camera.x) * .12;
-      camera.y += (ty - camera.y) * .08;
       camera.x = Math.max(0, Math.min(camera.x, ld.width - W));
-      camera.y = Math.max(0, Math.min(camera.y, 200));
+      camera.y = 0; // floor always stays at bottom — no vertical scroll
     }
 
     // ═══════════════════════════════════════════════════════
@@ -1726,6 +2433,65 @@
         }
       }
 
+      // ── QUESTION BLOCKS ──
+      for (const qb of ld.qblocks) {
+        const bx = qb.x, by = qb.y - (qb.bumpTimer > 0 ? Math.sin(qb.bumpTimer / 10 * Math.PI) * 8 : 0);
+        if (bx + 28 < camera.x - 20 || bx > camera.x + W + 20) continue;
+        // block body
+        ctx.fillStyle = qb.hit ? '#4a3a10' : '#c8a820';
+        ctx.fillRect(bx, by, 28, 28);
+        ctx.fillStyle = qb.hit ? '#3a2a08' : '#f5d640';
+        ctx.fillRect(bx + 2, by + 2, 24, 24);
+        // Question mark or X
+        ctx.fillStyle = qb.hit ? '#6a5a20' : '#8b5800';
+        ctx.font = 'bold 16px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText(qb.hit ? '!' : '?', bx + 14, by + 20);
+        ctx.textAlign = 'left';
+        // shimmer effect on unhit blocks
+        if (!qb.hit) {
+          ctx.globalAlpha = 0.3 + Math.sin(frameCount * 0.1 + bx * 0.05) * 0.2;
+          ctx.fillStyle = '#fff8c0';
+          ctx.fillRect(bx + 3, by + 3, 8, 4);
+          ctx.globalAlpha = 1;
+        }
+        // border
+        ctx.strokeStyle = qb.hit ? '#2a1a04' : '#6b3a00';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(bx + 1, by + 1, 26, 26);
+        ctx.lineWidth = 1;
+      }
+
+      // ── POWER-UP ITEMS ──
+      for (const pu of powerups) {
+        if (pu.x + 24 < camera.x - 20 || pu.x > camera.x + W + 20) continue;
+        // Flicker when about to expire (last 1.5 seconds = 90 frames)
+        if (pu.life < 90 && Math.floor(frameCount / 5) % 2 === 0) continue;
+        const bob = Math.sin(frameCount * 0.1 + pu.x) * 3;
+        const puColors = { rapid: ['#ff4488', '#ff88cc'], big: ['#44ffcc', '#88ffee'], bomb: ['#ff8800', '#ffcc44'] };
+        const puIcons = { rapid: '⚡', big: '🎵', bomb: '💣' };
+        const [c1, c2] = puColors[pu.type] || ['#fff', '#aaa'];
+        // glow
+        ctx.globalAlpha = 0.25 + Math.sin(frameCount * 0.1) * 0.1;
+        ctx.fillStyle = c1;
+        ctx.beginPath(); ctx.arc(pu.x + 12, pu.y + 12 + bob, 18, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        // box
+        ctx.fillStyle = c1; ctx.fillRect(pu.x, pu.y + bob, 24, 24);
+        ctx.fillStyle = c2; ctx.fillRect(pu.x + 2, pu.y + 2 + bob, 20, 20);
+        // icon
+        ctx.font = '13px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(puIcons[pu.type] || '?', pu.x + 12, pu.y + 17 + bob);
+        ctx.textAlign = 'left';
+        // border flash
+        ctx.strokeStyle = c1;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6 + Math.sin(frameCount * 0.15) * 0.4;
+        ctx.strokeRect(pu.x, pu.y + bob, 24, 24);
+        ctx.globalAlpha = 1; ctx.lineWidth = 1;
+      }
+
       // ── CASTLE (GOAL) ──
       drawCastle(ctx, goalRect.x, goalRect.y, frameCount);
 
@@ -1755,6 +2521,31 @@
       for (const e of enemies) {
         if (e.dead || e.x + 32 < camera.x - 20 || e.x > camera.x + W + 20) continue;
         drawDrum32(ctx, e.x, e.y, e.v, e.hp, e.maxHp, frameCount);
+        // Draw type icon labels
+        ctx.font = '7px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        if (e.v === 3) { ctx.fillStyle = '#00ff44'; ctx.fillText('↑↑', e.x + 16, e.y - 10); }
+        if (e.v === 4) { ctx.fillStyle = '#ff6600'; ctx.fillText('✦', e.x + 16, e.y - 10); }
+        if (e.v === 5 && e.charging) { ctx.fillStyle = '#00e8ff'; ctx.fillText('▶▶', e.x + 16, e.y - 10); }
+        ctx.textAlign = 'left';
+      }
+
+      // ── ENEMY PROJECTILES ──
+      for (const ep of enemyProjectiles) {
+        if (ep.x + 12 < camera.x - 20 || ep.x > camera.x + W + 20) continue;
+        // Orange drum-beat ball
+        ctx.save();
+        const pulse = 0.7 + Math.sin(frameCount * 0.3 + ep.x * 0.05) * 0.3;
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = '#ff4400';
+        ctx.beginPath(); ctx.arc(ep.x, ep.y, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ff8800';
+        ctx.beginPath(); ctx.arc(ep.x - 2, ep.y - 2, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.3 * pulse;
+        ctx.fillStyle = '#ff8800';
+        ctx.beginPath(); ctx.arc(ep.x, ep.y, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.restore();
       }
 
       // ── PROJECTILES ──
@@ -1774,6 +2565,38 @@
           ctx.globalAlpha = .3; ctx.fillStyle = '#f5c518';
           ctx.beginPath(); ctx.arc(-4, 0, 3, 0, Math.PI * 2); ctx.fill();
           ctx.globalAlpha = 1;
+        } else if (proj.type === 'bignote') {
+          const sc = proj.scale || 1;
+          ctx.translate(proj.x, proj.y);
+          ctx.scale(sc, sc);
+          ctx.rotate(Math.atan2(proj.vy, proj.vx));
+          // growing note — cyan/teal tint to distinguish
+          ctx.fillStyle = '#44ffcc';
+          ctx.beginPath(); ctx.ellipse(0, 6, 5, 4, -0.3, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#00ccaa'; ctx.fillRect(4, -4, 3, 11);
+          ctx.fillStyle = '#44ffcc'; ctx.fillRect(7, -4, 5, 3); ctx.fillRect(9, -2, 3, 3);
+          // glow ring
+          ctx.globalAlpha = .2 + (sc - 1) * 0.1;
+          ctx.fillStyle = '#44ffcc';
+          ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        } else if (proj.type === 'bomb') {
+          ctx.translate(proj.x, proj.y);
+          // bomb ball — dark with fuse
+          const pulse = 0.8 + Math.sin(frameCount * 0.3) * 0.2;
+          ctx.fillStyle = '#ff8800';
+          ctx.globalAlpha = 0.3 * pulse;
+          ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#444'; ctx.beginPath(); ctx.arc(-2, -2, 7, 0, Math.PI * 2); ctx.fill();
+          // fuse
+          ctx.strokeStyle = '#ff8800'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(5, -8); ctx.quadraticCurveTo(10, -14, 7, -18); ctx.stroke();
+          // spark
+          ctx.fillStyle = `hsl(${frameCount * 20 % 60 + 30},100%,60%)`;
+          ctx.beginPath(); ctx.arc(7 + Math.sin(frameCount * 0.5) * 2, -18 + Math.cos(frameCount * 0.5) * 2, 3, 0, Math.PI * 2); ctx.fill();
+          ctx.lineWidth = 1;
         } else if (proj.type === 'skirl') {
           ctx.globalAlpha = .85;
           ctx.fillStyle = '#0088dd';
@@ -1807,6 +2630,33 @@
       ctx.restore(); // camera
 
       // ── ON-SCREEN HUD ELEMENTS ──
+      // ── ACTIVE POWERUP INDICATOR ──
+      if (player && player.rapidFire > 0 && player.activeNote && player.activeNote !== 'note') {
+        const puLabels = { bignote: '🎵 BIG NOTES', bomb: '💣 BOMB NOTES', note: '' };
+        const puColors = { bignote: '#44ffcc', bomb: '#ff8800' };
+        const label = puLabels[player.activeNote] || '';
+        const col = puColors[player.activeNote] || '#fff';
+        const secLeft = Math.ceil(player.rapidFire / 60);
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(W / 2 - 110, H - 38, 220, 28);
+        ctx.fillStyle = col;
+        ctx.font = '8px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${label} ${secLeft}s`, W / 2, H - 18);
+        ctx.textAlign = 'left';
+        ctx.globalAlpha = 1;
+      } else if (player && player.rapidFire > 0) {
+        const secLeft = Math.ceil(player.rapidFire / 60);
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(W / 2 - 110, H - 38, 220, 28);
+        ctx.fillStyle = '#ff4488';
+        ctx.font = '8px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText(`⚡ RAPID FIRE ${secLeft}s`, W / 2, H - 18);
+        ctx.textAlign = 'left';
+        ctx.globalAlpha = 1;
+      }
+
       // Level name banner (first 3s)
       if (levelTime < 180) {
         const alpha = levelTime < 120 ? 1 : 1 - (levelTime - 120) / 60;
@@ -1835,7 +2685,7 @@
       document.getElementById('coin-txt').textContent = coins;
       document.getElementById('time-txt').textContent = formatTime(levelTime);
 
-      const abls = [['shoot', 'asl-shoot', 'cd-shoot'], ['skirl', 'asl-skirl', 'cd-skirl'], ['charge', 'asl-charge', 'cd-charge'], ['drone', 'asl-drone', 'cd-drone'], ['shield', 'asl-shield', 'cd-shield']];
+      const abls = [['shoot', 'asl-shoot', 'cd-shoot'], ['skirl', 'asl-skirl', 'cd-skirl'], ['charge', 'asl-charge', 'cd-charge'], ['drone', 'asl-drone', 'cd-drone'], ['shield', 'asl-shield', 'cd-shield'], ['heal', 'asl-heal', 'cd-heal']];
       for (const [k, sid, cid] of abls) {
         const cd = p.cooldowns[k], max = p.CD_MAX[k];
         const el = document.getElementById(sid);
@@ -1856,7 +2706,9 @@
         updatePlayer();
         if (GS !== 'playing') { requestAnimationFrame(gameLoop); return; }
         updateProjectiles();
+        updatePowerups();
         updateEnemies();
+        updateEnemyProjectiles();
         updateCollectibles();
         // Update particles
         particles = particles.filter(p => {
@@ -1893,6 +2745,67 @@
     // ═══════════════════════════════════════════════════════
     //  BOOT
     // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════
+    //  MOBILE TOUCH CONTROLS
+    // ═══════════════════════════════════════════════════════
+    const isMobile = navigator.maxTouchPoints > 0 || ('ontouchstart' in window);
+
+    if (isMobile) {
+      // Show touch overlay
+      document.getElementById('touch-ctrl').style.display = 'block';
+
+      // Scale canvas to fit viewport width
+      const wrap = document.getElementById('wrap');
+      function scaleWrap() {
+        const scale = Math.min(1, (window.innerWidth - 4) / 906);
+        wrap.style.transformOrigin = 'top center';
+        wrap.style.transform = scale < 1 ? `scale(${scale})` : '';
+        if (scale < 1) {
+          document.body.style.minHeight = Math.ceil(wrap.offsetHeight * scale) + 'px';
+        }
+      }
+      scaleWrap();
+      window.addEventListener('resize', scaleWrap);
+
+      // Prevent page scroll/zoom while playing
+      document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+
+      // Wire up a touch button to a keyboard key
+      function tcBtn(id, key) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('touchstart', e => {
+          e.preventDefault();
+          if (!K[key]) JP[key] = true;
+          K[key] = true;
+          el.classList.add('active');
+        }, { passive: false });
+        const release = e => { e.preventDefault(); K[key] = false; el.classList.remove('active'); };
+        el.addEventListener('touchend', release, { passive: false });
+        el.addEventListener('touchcancel', release, { passive: false });
+      }
+
+      tcBtn('tc-mv-left', 'ArrowLeft');
+      tcBtn('tc-mv-right', 'ArrowRight');
+      tcBtn('tc-jump', 'z');
+      tcBtn('tc-shoot', 'q');
+      tcBtn('tc-skirl', 'w');
+      tcBtn('tc-charge', 'e');
+      tcBtn('tc-drone', 'r');
+      tcBtn('tc-shield', 'a');
+      tcBtn('tc-heal', 's');
+      tcBtn('tc-pause-btn', 'Escape');
+
+      // Update How-to-Play text for mobile layout
+      const htp = document.querySelector('#s-howto div[style]');
+      if (htp) {
+        htp.innerHTML = htp.innerHTML
+          .replace('← → MOVE', '◀ ▶ MOVE (left side)')
+          .replace('Z / ↑</span> JUMP', 'JUMP</span> button (right)')
+          .replace('ESC/P</span> PAUSE', '⏸</span> PAUSE (top-right)');
+      }
+    }
+
     initAudio();
     // Pre-build level grid on load
     UI.buildLevelGrid();
