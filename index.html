@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -510,6 +511,38 @@
       background: rgba(30, 60, 30, 0.78);
       border-color: rgba(140, 220, 80, 0.8);
     }
+
+    /* ── WORLD SELECT ── */
+    #world-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:6px;}
+    .world-card{font-family:'Press Start 2P',monospace;font-size:9px;padding:16px 12px;text-align:center;cursor:pointer;border:2px solid #2a2a4a;background:#0a0a18;transition:.08s;min-width:160px;color:#aaa;}
+    .world-card:hover{transform:translate(-2px,-2px);box-shadow:4px 4px #000;}
+    .world-card.locked{opacity:.4;cursor:not-allowed;}
+    .world-card.locked:hover{transform:none;box-shadow:none;}
+    .world-card .wc-name{font-size:7px;margin-top:6px;}
+    .world-card .wc-stars{color:#f5c518;font-size:12px;margin-top:4px;}
+    .world-card .wc-prog{font-size:5.5px;color:#666;margin-top:3px;}
+    /* ── SETTINGS ── */
+    .bind-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #1a1a2a;}
+    .bind-row:last-child{border-bottom:none;}
+    .bind-label{font-size:6px;color:#bbb;flex:1;}
+    .bind-key-btn{font-family:'Press Start 2P',monospace;font-size:6px;padding:5px 8px;min-width:90px;background:#0e1a0e;color:#8dff6e;border:2px solid #2a4a2a;cursor:pointer;}
+    .bind-key-btn:hover{background:#1a2e1a;border-color:#4a8c3f;}
+    .bind-key-btn.capturing{background:#1a1a00;color:#f5c518;border-color:#8a7a00;animation:pulse .5s ease-in-out infinite;}
+    /* ── LEVEL BUILDER ── */
+    #builder-sidebar{display:none;position:absolute;left:0;top:0;width:66px;height:500px;background:rgba(4,4,16,.95);border-right:2px solid #2a2a4a;z-index:88;flex-direction:column;align-items:center;gap:3px;padding:5px 4px;pointer-events:all;}
+    #builder-bar{display:none;position:relative;width:906px;padding:7px 10px;background:#07060f;border:3px solid #2a2a4a;border-top:none;flex-direction:row;align-items:center;gap:6px;flex-wrap:wrap;z-index:88;}
+    .bl-tool{font-family:'Press Start 2P',monospace;font-size:11px;width:54px;height:42px;background:#0e0e1e;border:2px solid #2a2a4a;color:#aaa;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:.06s;}
+    .bl-tool:hover{border-color:#4a4a8a;background:#1a1a2e;}
+    .bl-tool.active{border-color:#6eb4ff;background:#0e1e3a;color:#6eb4ff;}
+    .bl-tool span{font-size:5px;color:#555;}
+    .bl-tool.active span{color:#4a8ac8;}
+    .bl-sep{width:46px;height:1px;background:#1a1a2a;margin:1px 0;flex-shrink:0;}
+    #builder-props{display:flex;gap:7px;align-items:center;flex:1;flex-wrap:wrap;}
+    #builder-props label{font-family:'Press Start 2P',monospace;font-size:5.5px;color:#555;}
+    #builder-props input[type=text]{font-family:'Press Start 2P',monospace;font-size:6px;background:#0e0e1e;color:#aaa;border:1px solid #2a2a4a;padding:3px 5px;width:110px;}
+    #builder-props input[type=number]{font-family:'Press Start 2P',monospace;font-size:6px;background:#0e0e1e;color:#aaa;border:1px solid #2a2a4a;padding:3px 5px;width:65px;}
+    #builder-props select{font-family:'Press Start 2P',monospace;font-size:6px;background:#0e0e1e;color:#aaa;border:1px solid #2a2a4a;padding:3px 5px;}
+    #builder-info{font-family:'Press Start 2P',monospace;font-size:5.5px;color:#3a3a5a;position:absolute;left:70px;top:4px;pointer-events:none;}
   </style>
 </head>
 
@@ -520,16 +553,36 @@
       <div class="tagline">A HIGHLAND ADVENTURE</div>
       <canvas id="titleCanvas" width="200" height="80" style="image-rendering:pixelated;margin:4px 0;"></canvas>
       <div class="menu-btns">
-        <button class="btn gold" onclick="UI.startGame(1)">▶ NEW GAME</button>
-        <button class="btn blue" onclick="UI.showScreen('s-levelselect')">🗺 LEVEL SELECT</button>
+        <button class="btn gold" onclick="UI.startGame(1,1)">▶ NEW GAME</button>
+        <button class="btn blue" onclick="UI.showScreen('s-worldselect')">🗺 WORLD SELECT</button>
         <button class="btn" onclick="UI.showScreen('s-howto')">? HOW TO PLAY</button>
+        <button class="btn" onclick="UI.showScreen('s-settings')">⚙ SETTINGS</button>
+        <button class="btn" onclick="UI.openBuilder()">🔧 LEVEL BUILDER</button>
+      </div>
+    </div>
+
+    <div class="screen screen-bg" id="s-worldselect">
+      <div class="screen-title">— SELECT WORLD —</div>
+      <div id="world-grid"></div>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button class="btn" onclick="UI.openBuilder()">🔧 LEVEL BUILDER</button>
+        <button class="btn red" onclick="UI.showScreen('s-title')">◀ BACK</button>
       </div>
     </div>
 
     <div class="screen screen-bg" id="s-levelselect">
-      <div class="screen-title">— SELECT LEVEL —</div>
+      <div class="screen-title" id="ls-world-name">— SELECT LEVEL —</div>
       <div class="level-grid" id="level-grid"></div>
-      <button class="btn red" style="margin-top:10px" onclick="UI.showScreen('s-title')">◀ BACK</button>
+      <button class="btn red" style="margin-top:10px" onclick="UI.showScreen('s-worldselect')">◀ BACK</button>
+    </div>
+
+    <div class="screen screen-bg" id="s-settings">
+      <div class="screen-title">— SETTINGS —</div>
+      <div id="settings-bindings" style="border:1px solid #2a2a4a;padding:14px 18px;max-width:400px;width:400px;background:rgba(0,0,0,.3);"></div>
+      <div style="display:flex;gap:10px;margin-top:10px;">
+        <button class="btn" onclick="UI.resetBindings()">↺ RESET KEYS</button>
+        <button class="btn red" onclick="UI.showScreen('s-title')">◀ BACK</button>
+      </div>
     </div>
 
     <div class="screen screen-bg" id="s-howto">
@@ -560,7 +613,6 @@
       </div>
       <button class="btn red" onclick="UI.showScreen('s-title')">◀ BACK</button>
     </div>
-
     <div class="screen screen-bg" id="s-pause">
       <div class="pause-label">⏸ PAUSED</div>
       <button class="btn gold" onclick="UI.resume()">▶ RESUME</button>
@@ -583,6 +635,7 @@
       <button class="btn blue" onclick="UI.showScreen('s-levelselect')">🗺 LEVEL SELECT</button>
       <button class="btn red" onclick="UI.backToTitle()">🏠 MAIN MENU</button>
     </div>
+
 
     <canvas id="gameCanvas" width="900" height="500"></canvas>
 
@@ -627,6 +680,7 @@
       </div>
     </div>
 
+
     <div id="ftxt"></div>
     <div id="touch-ctrl">
       <button class="tc-btn" id="tc-mv-left">◀</button>
@@ -642,6 +696,48 @@
         <button class="tc-abl-btn" id="tc-heal">❤️<span class="abl-key">HEAL</span></button>
       </div>
     </div>
+  
+
+    <div id="builder-sidebar">
+      <div class="bl-tool active" id="bl-platform" onclick="UI.setTool('platform')" title="Platform (drag)">🏔<span>PLAT</span></div>
+      <div class="bl-sep"></div>
+      <div class="bl-tool" id="bl-enemy0" onclick="UI.setTool('enemy0')" title="Drum Patrol">👾<span>E:0</span></div>
+      <div class="bl-tool" id="bl-enemy1" onclick="UI.setTool('enemy1')" title="Jumper">🦘<span>E:1</span></div>
+      <div class="bl-tool" id="bl-enemy2" onclick="UI.setTool('enemy2')" title="Shooter">🎯<span>E:2</span></div>
+      <div class="bl-tool" id="bl-enemy3" onclick="UI.setTool('enemy3')" title="Charger">💨<span>E:3</span></div>
+      <div class="bl-sep"></div>
+      <div class="bl-tool" id="bl-coin" onclick="UI.setTool('coin')" title="Coin">🪙<span>COIN</span></div>
+      <div class="bl-tool" id="bl-qblock" onclick="UI.setTool('qblock')" title="? Block">❓<span>?BLK</span></div>
+      <div class="bl-tool" id="bl-goal" onclick="UI.setTool('goal')" title="Goal Castle">🏰<span>GOAL</span></div>
+      <div class="bl-sep"></div>
+      <div class="bl-tool" id="bl-delete" onclick="UI.setTool('delete')" title="Delete">⌫<span>DEL</span></div>
+    </div>
+
+    <div id="builder-bar">
+      <div id="builder-props">
+        <label>NAME</label><input type="text" id="bl-name" value="CUSTOM LEVEL" maxlength="20" oninput="BLD.levelData&&(BLD.levelData.name=this.value)">
+        <label>WIDTH</label><input type="number" id="bl-width" value="3200" min="900" max="8000" step="100" onchange="BLD.setWidth(+this.value)">
+        <label>THEME</label>
+        <select id="bl-theme" onchange="BLD.setTheme(this.value)">
+          <option value="highland">Highland</option>
+          <option value="volcanic">Volcanic</option>
+          <option value="frozen">Frozen</option>
+          <option value="shadow">Shadow</option>
+        </select>
+        <label>SLOT</label>
+        <select id="bl-slot">
+          <option>1</option><option>2</option><option>3</option>
+          <option>4</option><option>5</option><option>6</option>
+        </select>
+      </div>
+      <button class="btn" onclick="BLD.newLevel()">✚ NEW</button>
+      <button class="btn" onclick="BLD.saveLevel()">💾 SAVE</button>
+      <button class="btn blue" onclick="BLD.loadLevel()">📂 LOAD</button>
+      <button class="btn gold" onclick="BLD.testLevel()">▶ TEST</button>
+      <button class="btn red" onclick="UI.exitBuilder()">✕ EXIT</button>
+      <div id="builder-info"></div>
+    </div>
+
   </div>
   <script>
     'use strict';
@@ -850,6 +946,72 @@
     }
     document.getElementById('mute-btn').addEventListener('click', toggleMute);
 
+
+    // ═══════════════════════════════════════════════════════
+    //  KEY BINDING SYSTEM
+    // ═══════════════════════════════════════════════════════
+    const DEFAULT_KB = {
+      left:'ArrowLeft', right:'ArrowRight',
+      jump:'z', jump2:'ArrowUp',
+      shoot:'q', skirl:'w', charge:'e', drone:'r',
+      shield:'a', heal:'s',
+      pause:'Escape', pause2:'p', mute:'m',
+    };
+    let KB = Object.assign({}, DEFAULT_KB);
+    try { const sv = localStorage.getItem('pogl_kb'); if (sv) Object.assign(KB, JSON.parse(sv)); } catch(e) {}
+
+    let _bindingAction = null;
+
+    const K = {}, JP = {};
+    // [input listeners moved to bottom]
+
+    function kHeld(action) {
+      const k = KB[action]||''; return K[k]||K[k.toLowerCase()]||K[k.toUpperCase()]||
+        (action==='jump'&&(K[KB.jump2]||K[(KB.jump2||'').toLowerCase()]||K[(KB.jump2||'').toUpperCase()]));
+    }
+    function kPress(action) {
+      const k = KB[action]||''; return JP[k]||JP[k.toLowerCase()]||JP[k.toUpperCase()]||
+        (action==='jump'&&(JP[KB.jump2]||JP[(KB.jump2||'').toLowerCase()]||JP[(KB.jump2||'').toUpperCase()]))||
+        (action==='pause'&&(JP[KB.pause2]||JP[(KB.pause2||'p').toLowerCase()]||JP[(KB.pause2||'p').toUpperCase()]));
+    }
+    function formatKeyName(key) {
+      const m={'ArrowLeft':'←LEFT','ArrowRight':'→RIGHT','ArrowUp':'↑UP','ArrowDown':'↓DOWN',' ':'SPACE','Escape':'ESC','Enter':'ENTER','Shift':'SHIFT','Control':'CTRL','Alt':'ALT'};
+      return m[key]||(key||'?').toUpperCase();
+    }
+    function buildSettingsUI() {
+      const ct=document.getElementById('settings-bindings'); if(!ct)return;
+      const actions=[['left','MOVE LEFT'],['right','MOVE RIGHT'],['jump','JUMP'],['shoot','SHOOT NOTES'],
+        ['skirl','SKIRL BLAST'],['charge','HIGHLAND CHARGE'],['drone','DRONE WAVE'],
+        ['shield','THISTLE SHIELD'],['heal','HEAL HP'],['pause','PAUSE'],['mute','MUTE']];
+      ct.innerHTML=actions.map(([a,l])=>`<div class="bind-row"><span class="bind-label">${l}</span>
+        <button class="bind-key-btn" id="bind-btn-${a}" onclick="startBindCapture('${a}')">${formatKeyName(KB[a])}</button></div>`).join('');
+    }
+    function startBindCapture(action) {
+      _bindingAction=action;
+      const btn=document.getElementById('bind-btn-'+action);
+      if(btn){btn.textContent='... PRESS KEY';btn.classList.add('capturing');}
+    }
+    function updateHUDKeys() {
+      const m={shoot:'asl-shoot',skirl:'asl-skirl',charge:'asl-charge',drone:'asl-drone',shield:'asl-shield',heal:'asl-heal'};
+      for(const[a,id]of Object.entries(m)){const el=document.querySelector('#'+id+' .akey');if(el)el.textContent=(KB[a]||'?').toUpperCase().substring(0,3);}
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  GAME STATE
+    // ═══════════════════════════════════════════════════════
+    let GS='title';
+    let score=0,coins=0,currentLevel=1,currentWorld=1,selectedWorld=1,levelTime=0;
+    let player,projectiles,enemies,collectibles,particles,camera,goalRect;
+    let powerups=[],enemyProjectiles=[],frameCount=0;
+    let levelStars={};
+    try{levelStars=JSON.parse(localStorage.getItem('pogl_stars')||'{}');}catch(e){}
+    function saveStars(){try{localStorage.setItem('pogl_stars',JSON.stringify(levelStars));}catch(e){}}
+    const POWERUP_TYPES=['rapid','big','bomb'];
+    function getWorldUnlocked(w){return parseInt(localStorage.getItem('pogl_w'+w+'_unlocked')||'1');}
+    function setWorldUnlocked(w,lvl){const c=getWorldUnlocked(w);if(lvl>c)localStorage.setItem('pogl_w'+w+'_unlocked',String(lvl));}
+    function isWorldAccessible(w){return w===1||getWorldUnlocked(w-1)>=7;}
+    function getLevelData(){return WORLDS[currentWorld-1].levels[currentLevel-1];}
+
     // ═══════════════════════════════════════════════════════
     //  CANVAS SETUP
     // ═══════════════════════════════════════════════════════
@@ -871,31 +1033,9 @@
     }
     animateTitle();
 
-    // ═══════════════════════════════════════════════════════
-    //  INPUT
-    // ═══════════════════════════════════════════════════════
-    const K = {}, JP = {};
-    const BLOCK = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'z', 'Z', 'x', 'X', 'q', 'Q', 'w', 'W', 'e', 'E', 'r', 'R', 'a', 'A', 's', 'S', 'p', 'P', 'Escape', ' '];
-    window.addEventListener('keydown', e => {
-      if (!K[e.key]) JP[e.key] = true;
-      K[e.key] = true;
-      if (BLOCK.includes(e.key)) e.preventDefault();
-      if (e.key === 'm' || e.key === 'M') toggleMute();
-    });
-    window.addEventListener('keyup', e => { K[e.key] = false; });
+    // [INPUT handled by key binding system above]
 
-    // ═══════════════════════════════════════════════════════
-    //  GAME STATE
-    // ═══════════════════════════════════════════════════════
-    let GS = 'title';
-    let score = 0, coins = 0, currentLevel = 1, levelTime = 0;
-    let player, projectiles, enemies, collectibles, particles, camera, goalRect;
-    let powerups = [];
-    let enemyProjectiles = [];
-    let frameCount = 0;
-    const levelStars = {};
-
-    const POWERUP_TYPES = ['rapid', 'big', 'bomb'];
+    // [GAME STATE handled above]
 
     // ═══════════════════════════════════════════════════════
     //  PIXEL ART
@@ -1052,41 +1192,49 @@
       c.restore();
     }
 
-    // Boss Nessie Drawing
-    function drawNessie(c, ox, oy, hp, maxHp, frame) {
+
+    // Boss Drawing (all worlds)
+    const BOSS_THEMES = [
+      {body:'#0a4a2a',belly:'#1a6a3a',eye:'#ff0000',drum:'#6b0000',rim:'#e8dcc0'},
+      {body:'#4a1000',belly:'#8a2010',eye:'#ff6600',drum:'#8b2000',rim:'#f0c080'},
+      {body:'#0a2040',belly:'#1a4080',eye:'#00ccff',drum:'#003060',rim:'#c0e0ff'},
+      {body:'#280050',belly:'#480090',eye:'#cc00ff',drum:'#1a0030',rim:'#e0c0ff'},
+    ];
+    function drawBoss(c, ox, oy, hp, maxHp, frame, worldNum) {
+      const th = BOSS_THEMES[Math.min((worldNum||1)-1, BOSS_THEMES.length-1)];
       c.save();
       const X = ox, Y = oy;
       const bob = Math.floor(frame / 12) % 2 * 2;
       function px(x, y, w, h, col) { c.fillStyle = col; c.fillRect(X + x, Y + y + bob, w, h); }
 
       // Body
-      px(20, 70, 80, 50, '#0a4a2a');
-      px(30, 60, 60, 10, '#0a4a2a');
-      px(25, 120, 70, 10, '#0a4a2a');
-      px(30, 80, 60, 30, '#1a6a3a'); // belly
+      px(20, 70, 80, 50, th.body);
+      px(30, 60, 60, 10, th.body);
+      px(25, 120, 70, 10, th.body);
+      px(30, 80, 60, 30, th.belly); // belly
 
       // Tail
-      px(100, 90, 20, 20, '#0a4a2a');
-      px(110, 80, 10, 10, '#0a4a2a');
+      px(100, 90, 20, 20, th.body);
+      px(110, 80, 10, 10, th.body);
 
       // Neck
-      px(10, 30, 20, 50, '#0a4a2a');
-      px(15, 10, 15, 20, '#0a4a2a');
+      px(10, 30, 20, 50, th.body);
+      px(15, 10, 15, 20, th.body);
 
       // Head
-      px(0, 0, 30, 20, '#0a4a2a');
-      px(0, 10, 10, 10, '#1a6a3a'); // snout
-      px(10, 5, 6, 6, '#ff0000');   // eye
+      px(0, 0, 30, 20, th.body);
+      px(0, 10, 10, 10, th.belly); // snout
+      px(10, 5, 6, 6, th.eye);   // eye
       px(12, 7, 2, 2, '#fff');
 
       // Huge Boss Drum
-      px(35, 65, 50, 50, '#6b0000');
-      px(30, 60, 60, 5, '#e8dcc0');
-      px(30, 110, 60, 5, '#e8dcc0');
+      px(35, 65, 50, 50, th.drum);
+      px(30, 60, 60, 5, th.rim);
+      px(30, 110, 60, 5, th.rim);
 
       // Tiny Arms playing drum
-      px(45, 45, 10, 25, '#0a4a2a');
-      px(65, 45, 10, 25, '#0a4a2a');
+      px(45, 45, 10, 25, th.body);
+      px(65, 45, 10, 25, th.body);
 
       // Drumsticks
       const stickAng = Math.sin(frame * 0.3) * 10;
@@ -1192,10 +1340,14 @@
       c.restore();
     }
 
+
+
     // ═══════════════════════════════════════════════════════
-    //  LEVEL DEFINITIONS
+    //  WORLDS
     // ═══════════════════════════════════════════════════════
-    const LEVELS = [
+    const WORLDS = [
+      {name:'HIGHLAND GLENS',color:'#1a5c2e',borderColor:'#2a8a3e',emoji:'🏴󠁧󠁢󠁳󠁣󠁴󠁿',desc:'THE CLASSIC CAMPAIGN',
+        levels:[
       {
         name: 'GLEN OF BEGINNINGS',
         width: 3200, bgColors: ['#0d1b35', '#1a3050'],
@@ -1222,6 +1374,7 @@
         qblocks: [
           { x: 500, y: 187 }, { x: 660, y: 127 }, { x: 1680, y: 137 }, { x: 2230, y: 117 }, { x: 2570, y: 247 }
         ],
+        'platColors':['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'],'accentColor':'#5a2080','accentColor2':'#d460ff'
       },
       {
         name: 'SKYE CLIFFSIDE',
@@ -1249,6 +1402,7 @@
         qblocks: [
           { x: 520, y: 197 }, { x: 760, y: 77 }, { x: 1750, y: 167 }, { x: 1870, y: 97 }, { x: 2900, y: 217 },
         ],
+        'platColors':['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'],'accentColor':'#5a2080','accentColor2':'#d460ff'
       },
       {
         name: 'LOCH CROSSING',
@@ -1276,6 +1430,7 @@
         qblocks: [
           { x: 500, y: 277 }, { x: 1400, y: 107 }, { x: 820, y: 247 }, { x: 2480, y: 147 }, { x: 3360, y: 197 },
         ],
+        'platColors':['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'],'accentColor':'#5a2080','accentColor2':'#d460ff'
       },
       {
         name: 'THE PEAT BOG',
@@ -1303,6 +1458,7 @@
         qblocks: [
           { x: 1280, y: 157 }, { x: 1430, y: 97 }, { x: 2240, y: 127 }, { x: 3270, y: 97 }, { x: 2990, y: 227 },
         ],
+        'platColors':['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'],'accentColor':'#5a2080','accentColor2':'#d460ff'
       },
       {
         name: 'CASTLE SIEGE',
@@ -1331,6 +1487,7 @@
         qblocks: [
           { x: 600, y: 172 }, { x: 1440, y: 137 }, { x: 2180, y: 137 }, { x: 3270, y: 87 }, { x: 3940, y: 137 },
         ],
+        'platColors':['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'],'accentColor':'#5a2080','accentColor2':'#d460ff'
       },
       // ─── LEVEL 6: LOCH NESS LAIR (BOSS) ──────────────────────────────────────────────────
       {
@@ -1353,55 +1510,281 @@
           { x: 136, y: 200 }, { x: 736, y: 200 }
         ],
       }
+    
+        ]},
+      {name:'VOLCANIC PEAKS',color:'#8b0000',borderColor:'#c01010',emoji:'🌋',desc:'FIRE AND FURY AWAIT',
+        levels:[
+{
+        name:"CINDER GATE",width:3200,bgColors:["#1a0600", "#300e00"],skyStars:false,misty:true,
+        platforms:[{"x":0,"y":450,"w":3200,"h":60},{"x":180,"y":390,"w":80,"h":18},{"x":330,"y":330,"w":80,"h":18},{"x":490,"y":270,"w":80,"h":18},{"x":650,"y":210,"w":80,"h":18},{"x":810,"y":270,"w":80,"h":18},{"x":970,"y":340,"w":80,"h":18},{"x":1130,"y":400,"w":80,"h":18},{"x":1310,"y":350,"w":65,"h":18},{"x":1450,"y":280,"w":65,"h":18},{"x":1590,"y":210,"w":65,"h":18},{"x":1730,"y":150,"w":65,"h":18},{"x":1870,"y":210,"w":65,"h":18},{"x":2010,"y":280,"w":65,"h":18},{"x":2200,"y":340,"w":75,"h":18},{"x":2370,"y":270,"w":75,"h":18},{"x":2540,"y":200,"w":75,"h":18},{"x":2720,"y":260,"w":90,"h":18},{"x":2900,"y":190,"w":90,"h":18}],
+        enemies:[{"x":200,"y":363,"v":0,"hp":4},{"x":510,"y":243,"v":3,"hp":4},{"x":830,"y":243,"v":0,"hp":4},{"x":1330,"y":323,"v":4,"hp":5},{"x":1750,"y":123,"v":3,"hp":5},{"x":2030,"y":253,"v":4,"hp":5},{"x":2390,"y":243,"v":5,"hp":5},{"x":2740,"y":233,"v":5,"hp":6}],
+        coins:[{"x":200,"y":370},{"x":350,"y":310},{"x":510,"y":250},{"x":670,"y":190},{"x":830,"y":250},{"x":990,"y":320},{"x":1150,"y":380},{"x":1330,"y":330},{"x":1470,"y":260},{"x":1610,"y":190},{"x":1750,"y":130},{"x":1890,"y":190},{"x":2030,"y":260},{"x":2220,"y":320},{"x":2390,"y":250},{"x":2560,"y":180},{"x":2740,"y":240},{"x":2920,"y":170}],
+        goalX:2990,goalY:50,timePar:190,timeGold:140,
+        qblocks:[{"x":490,"y":187},{"x":650,"y":127},{"x":1730,"y":67},{"x":2540,"y":117},{"x":2370,"y":187}],
+        'platColors':['#2a0e00','#3a1800','#6a2a00','#8a3c00','#aa5010'],'accentColor':'#cc3300','accentColor2':'#ff6600'
+      }
+      ,{
+        name:"LAVA RIVER",width:3400,bgColors:["#180800", "#2c1000"],skyStars:false,misty:true,
+        platforms:[{"x":0,"y":450,"w":3400,"h":60},{"x":150,"y":410,"w":65,"h":18},{"x":280,"y":375,"w":65,"h":18},{"x":410,"y":340,"w":65,"h":18},{"x":540,"y":305,"w":65,"h":18},{"x":670,"y":270,"w":65,"h":18},{"x":800,"y":235,"w":65,"h":18},{"x":930,"y":200,"w":65,"h":18},{"x":920,"y":165,"w":65,"h":18},{"x":1050,"y":205,"w":65,"h":18},{"x":1180,"y":245,"w":65,"h":18},{"x":1310,"y":285,"w":65,"h":18},{"x":1600,"y":380,"w":55,"h":18},{"x":1720,"y":340,"w":55,"h":18},{"x":1840,"y":300,"w":55,"h":18},{"x":1960,"y":260,"w":55,"h":18},{"x":2080,"y":220,"w":55,"h":18},{"x":2280,"y":380,"w":75,"h":18},{"x":2420,"y":310,"w":75,"h":18},{"x":2570,"y":240,"w":75,"h":18},{"x":2730,"y":170,"w":75,"h":18},{"x":2900,"y":230,"w":100,"h":18},{"x":3050,"y":160,"w":100,"h":18}],
+        enemies:[{"x":170,"y":383,"v":0,"hp":5},{"x":430,"y":293,"v":3,"hp":5},{"x":790,"y":153,"v":4,"hp":5},{"x":1120,"y":283,"v":0,"hp":6},{"x":1480,"y":243,"v":3,"hp":6},{"x":1980,"y":173,"v":4,"hp":6},{"x":2100,"y":213,"v":5,"hp":6},{"x":2740,"y":143,"v":4,"hp":7},{"x":3070,"y":133,"v":5,"hp":7}],
+        coins:[{"x":170,"y":390},{"x":300,"y":355},{"x":430,"y":320},{"x":560,"y":285},{"x":690,"y":250},{"x":820,"y":215},{"x":950,"y":180},{"x":940,"y":145},{"x":1070,"y":185},{"x":1200,"y":225},{"x":1330,"y":265},{"x":1620,"y":360},{"x":1740,"y":320},{"x":1860,"y":280},{"x":1980,"y":240},{"x":2100,"y":200},{"x":2300,"y":360},{"x":2440,"y":290},{"x":2590,"y":220},{"x":2750,"y":150},{"x":2920,"y":210},{"x":3070,"y":140}],
+        goalX:3140,goalY:20,timePar:210,timeGold:155,
+        qblocks:[{"x":670,"y":95},{"x":920,"y":85},{"x":1600,"y":197},{"x":2730,"y":87},{"x":3050,"y":77}],
+        'platColors':['#2a0e00','#3a1800','#6a2a00','#8a3c00','#aa5010'],'accentColor':'#cc3300','accentColor2':'#ff6600'
+      }
+      ,{
+        name:"ASH RIDGE",width:3600,bgColors:["#140400", "#280c00"],skyStars:false,misty:true,
+        platforms:[{"x":0,"y":450,"w":3600,"h":60},{"x":180,"y":380,"w":60,"h":18},{"x":380,"y":267,"w":60,"h":18},{"x":580,"y":220,"w":60,"h":18},{"x":780,"y":267,"w":60,"h":18},{"x":980,"y":380,"w":60,"h":18},{"x":1180,"y":493,"w":60,"h":18},{"x":1380,"y":540,"w":60,"h":18},{"x":1580,"y":493,"w":60,"h":18},{"x":1780,"y":380,"w":60,"h":18},{"x":1980,"y":267,"w":60,"h":18},{"x":2180,"y":220,"w":60,"h":18},{"x":2380,"y":267,"w":60,"h":18},{"x":2580,"y":380,"w":60,"h":18},{"x":2780,"y":493,"w":60,"h":18},{"x":2980,"y":540,"w":60,"h":18},{"x":3180,"y":493,"w":60,"h":18},{"x":3400,"y":200,"w":120,"h":18}],
+        enemies:[{"x":200,"y":383,"v":0,"hp":5},{"x":600,"y":173,"v":4,"hp":5},{"x":1000,"y":303,"v":3,"hp":5},{"x":1400,"y":153,"v":4,"hp":6},{"x":1780,"y":283,"v":5,"hp":6},{"x":2200,"y":183,"v":4,"hp":6},{"x":2580,"y":213,"v":3,"hp":7},{"x":2980,"y":153,"v":5,"hp":7},{"x":3000,"y":253,"v":4,"hp":7},{"x":3420,"y":173,"v":5,"hp":8}],
+        coins:[{"x":200,"y":360},{"x":400,"y":247},{"x":600,"y":200},{"x":800,"y":247},{"x":1000,"y":360},{"x":1800,"y":360},{"x":2000,"y":247},{"x":2200,"y":200},{"x":2400,"y":247},{"x":2600,"y":360},{"x":3420,"y":180}],
+        goalX:3460,goalY:60,timePar:240,timeGold:175,
+        qblocks:[{"x":380,"y":97},{"x":780,"y":87},{"x":1580,"y":87},{"x":2380,"y":97},{"x":3400,"y":117}],
+        'platColors':['#2a0e00','#3a1800','#6a2a00','#8a3c00','#aa5010'],'accentColor':'#cc3300','accentColor2':'#ff6600'
+      }
+      ,{
+        name:"SMOKE PASSAGE",width:3800,bgColors:["#120600", "#240c00"],skyStars:false,misty:true,
+        platforms:[{"x":0,"y":450,"w":3800,"h":60},{"x":150,"y":410,"w":60,"h":18},{"x":290,"y":410,"w":60,"h":18},{"x":430,"y":410,"w":60,"h":18},{"x":570,"y":410,"w":60,"h":18},{"x":710,"y":410,"w":60,"h":18},{"x":870,"y":360,"w":70,"h":18},{"x":1010,"y":300,"w":70,"h":18},{"x":1150,"y":240,"w":70,"h":18},{"x":1290,"y":180,"w":70,"h":18},{"x":1430,"y":240,"w":70,"h":18},{"x":1570,"y":300,"w":70,"h":18},{"x":1710,"y":360,"w":70,"h":18},{"x":1900,"y":310,"w":55,"h":18},{"x":2040,"y":250,"w":55,"h":18},{"x":2180,"y":190,"w":55,"h":18},{"x":2320,"y":130,"w":55,"h":18},{"x":2460,"y":190,"w":55,"h":18},{"x":2600,"y":250,"w":55,"h":18},{"x":2740,"y":310,"w":55,"h":18},{"x":2940,"y":360,"w":75,"h":18},{"x":3090,"y":280,"w":75,"h":18},{"x":3250,"y":200,"w":75,"h":18},{"x":3410,"y":130,"w":100,"h":18}],
+        enemies:[{"x":165,"y":383,"v":0,"hp":5},{"x":585,"y":383,"v":3,"hp":5},{"x":1030,"y":273,"v":4,"hp":6},{"x":1310,"y":153,"v":3,"hp":6},{"x":1590,"y":273,"v":5,"hp":6},{"x":2060,"y":223,"v":4,"hp":7},{"x":2340,"y":103,"v":5,"hp":7},{"x":2620,"y":223,"v":3,"hp":7},{"x":3110,"y":253,"v":4,"hp":8},{"x":3270,"y":173,"v":5,"hp":8},{"x":3430,"y":103,"v":4,"hp":9}],
+        coins:[{"x":170,"y":390},{"x":310,"y":390},{"x":450,"y":390},{"x":590,"y":390},{"x":730,"y":390},{"x":890,"y":340},{"x":1030,"y":280},{"x":1170,"y":220},{"x":1310,"y":160},{"x":1450,"y":220},{"x":1590,"y":280},{"x":1730,"y":340},{"x":1920,"y":290},{"x":2060,"y":230},{"x":2200,"y":170},{"x":2340,"y":110},{"x":2480,"y":170},{"x":2620,"y":230},{"x":2760,"y":290},{"x":2960,"y":340},{"x":3110,"y":260},{"x":3270,"y":180},{"x":3430,"y":110}],
+        goalX:3490,goalY:-10,timePar:260,timeGold:190,
+        qblocks:[{"x":1290,"y":97},{"x":1900,"y":227},{"x":2320,"y":47},{"x":3090,"y":197},{"x":3410,"y":47}],
+        'platColors':['#2a0e00','#3a1800','#6a2a00','#8a3c00','#aa5010'],'accentColor':'#cc3300','accentColor2':'#ff6600'
+      }
+      ,{
+        name:"INFERNO PASS",width:4200,bgColors:["#100400", "#200a00"],skyStars:false,misty:true,
+        platforms:[{"x":0,"y":450,"w":4200,"h":60},{"x":200,"y":400,"w":55,"h":18},{"x":310,"y":370,"w":55,"h":18},{"x":420,"y":340,"w":55,"h":18},{"x":530,"y":310,"w":55,"h":18},{"x":640,"y":280,"w":55,"h":18},{"x":800,"y":250,"w":65,"h":18},{"x":950,"y":190,"w":65,"h":18},{"x":1100,"y":130,"w":65,"h":18},{"x":1260,"y":200,"w":60,"h":18},{"x":1410,"y":270,"w":60,"h":18},{"x":1560,"y":340,"w":60,"h":18},{"x":1710,"y":410,"w":60,"h":18},{"x":1880,"y":350,"w":70,"h":18},{"x":2040,"y":280,"w":70,"h":18},{"x":2200,"y":210,"w":70,"h":18},{"x":2360,"y":150,"w":70,"h":18},{"x":2520,"y":210,"w":70,"h":18},{"x":2700,"y":270,"w":65,"h":18},{"x":2850,"y":330,"w":65,"h":18},{"x":3010,"y":260,"w":65,"h":18},{"x":3170,"y":190,"w":65,"h":18},{"x":3330,"y":130,"w":65,"h":18},{"x":3520,"y":190,"w":80,"h":18},{"x":3700,"y":260,"w":80,"h":18},{"x":3880,"y":330,"w":80,"h":18},{"x":4020,"y":160,"w":100,"h":18}],
+        enemies:[{"x":220,"y":373,"v":0,"hp":6},{"x":440,"y":343,"v":3,"hp":6},{"x":820,"y":223,"v":4,"hp":6},{"x":1120,"y":103,"v":5,"hp":7},{"x":1280,"y":173,"v":3,"hp":7},{"x":1720,"y":383,"v":4,"hp":7},{"x":2060,"y":253,"v":5,"hp":7},{"x":2380,"y":123,"v":4,"hp":8},{"x":2540,"y":183,"v":5,"hp":8},{"x":2870,"y":303,"v":3,"hp":8},{"x":3190,"y":163,"v":4,"hp":9},{"x":4040,"y":133,"v":5,"hp":9}],
+        coins:[{"x":220,"y":380},{"x":330,"y":350},{"x":440,"y":320},{"x":550,"y":290},{"x":660,"y":260},{"x":820,"y":230},{"x":970,"y":170},{"x":1120,"y":110},{"x":1280,"y":180},{"x":1430,"y":250},{"x":1580,"y":320},{"x":1730,"y":390},{"x":1900,"y":330},{"x":2060,"y":260},{"x":2220,"y":190},{"x":2380,"y":130},{"x":2540,"y":190},{"x":2720,"y":250},{"x":2870,"y":310},{"x":3030,"y":240},{"x":3190,"y":170},{"x":3350,"y":110},{"x":3540,"y":170},{"x":3720,"y":240},{"x":3900,"y":310},{"x":4040,"y":140}],
+        goalX:4090,goalY:20,timePar:320,timeGold:240,
+        qblocks:[{"x":800,"y":167},{"x":1100,"y":47},{"x":2360,"y":67},{"x":3170,"y":107},{"x":4020,"y":77}],
+        'platColors':['#2a0e00','#3a1800','#6a2a00','#8a3c00','#aa5010'],'accentColor':'#cc3300','accentColor2':'#ff6600'
+      }
+      ,{
+        name:"DRAGON'S DEN",width:900,bgColors:["#1a0000", "#330000"],skyStars:false,misty:true,
+        platforms:[{"x":0,"y":450,"w":900,"h":60},{"x":100,"y":350,"w":100,"h":18},{"x":700,"y":350,"w":100,"h":18},{"x":400,"y":250,"w":100,"h":18}],
+        enemies:[{"x":600,"y":310,"v":6,"hp":70,"maxHp":70,"w":120,"h":140}],
+        coins:[],
+        goalX:-1000,goalY:-1000,timePar:120,timeGold:60,
+        qblocks:[{"x":136,"y":200},{"x":736,"y":200}],
+      }
+        ]},
+      {name:'FROZEN TUNDRA',color:'#003d8c',borderColor:'#1060c0',emoji:'❄️',desc:'THE ICY NORTH',
+        levels:[
+{
+        name:"SNOWFALL VALE",width:3200,bgColors:["#060c1a", "#0e1e38"],skyStars:true,misty:true,
+        platforms:[{"x":0,"y":450,"w":3200,"h":60},{"x":170,"y":380,"w":85,"h":18},{"x":320,"y":310,"w":85,"h":18},{"x":480,"y":250,"w":85,"h":18},{"x":640,"y":190,"w":85,"h":18},{"x":810,"y":250,"w":85,"h":18},{"x":970,"y":320,"w":85,"h":18},{"x":1130,"y":390,"w":85,"h":18},{"x":1300,"y":340,"w":70,"h":18},{"x":1450,"y":270,"w":70,"h":18},{"x":1600,"y":200,"w":70,"h":18},{"x":1750,"y":140,"w":70,"h":18},{"x":1910,"y":200,"w":70,"h":18},{"x":2060,"y":270,"w":70,"h":18},{"x":2210,"y":340,"w":70,"h":18},{"x":2400,"y":290,"w":80,"h":18},{"x":2570,"y":220,"w":80,"h":18},{"x":2740,"y":150,"w":80,"h":18},{"x":2920,"y":210,"w":100,"h":18}],
+        enemies:[{"x":190,"y":353,"v":0,"hp":5},{"x":500,"y":223,"v":3,"hp":5},{"x":830,"y":223,"v":4,"hp":5},{"x":1320,"y":313,"v":5,"hp":6},{"x":1770,"y":113,"v":3,"hp":6},{"x":2080,"y":243,"v":4,"hp":6},{"x":2590,"y":193,"v":5,"hp":7},{"x":2760,"y":123,"v":4,"hp":7},{"x":2940,"y":183,"v":5,"hp":7}],
+        coins:[{"x":190,"y":360},{"x":340,"y":290},{"x":500,"y":230},{"x":660,"y":170},{"x":830,"y":230},{"x":990,"y":300},{"x":1150,"y":370},{"x":1320,"y":320},{"x":1470,"y":250},{"x":1620,"y":180},{"x":1770,"y":120},{"x":1930,"y":180},{"x":2080,"y":250},{"x":2230,"y":320},{"x":2420,"y":270},{"x":2590,"y":200},{"x":2760,"y":130},{"x":2940,"y":190}],
+        goalX:3010,goalY:70,timePar:200,timeGold:145,
+        qblocks:[{"x":480,"y":167},{"x":640,"y":107},{"x":1750,"y":57},{"x":2570,"y":137},{"x":2920,"y":127}],
+        'platColors':['#101a2a','#1a2e4a','#2a5080','#4a80bb','#6aaaf0'],'accentColor':'#4488cc','accentColor2':'#88ddff'
+      }
+      ,{
+        name:"GLACIER STEPS",width:3400,bgColors:["#050a18", "#0c1830"],skyStars:true,misty:true,
+        platforms:[{"x":0,"y":450,"w":3400,"h":60},{"x":180,"y":410,"w":50,"h":18},{"x":290,"y":380,"w":50,"h":18},{"x":400,"y":350,"w":50,"h":18},{"x":510,"y":320,"w":50,"h":18},{"x":620,"y":290,"w":50,"h":18},{"x":730,"y":260,"w":50,"h":18},{"x":840,"y":230,"w":50,"h":18},{"x":970,"y":200,"w":50,"h":18},{"x":1090,"y":140,"w":50,"h":18},{"x":1210,"y":80,"w":50,"h":18},{"x":1380,"y":130,"w":50,"h":18},{"x":1500,"y":180,"w":50,"h":18},{"x":1620,"y":240,"w":50,"h":18},{"x":1740,"y":300,"w":50,"h":18},{"x":1860,"y":360,"w":50,"h":18},{"x":2040,"y":300,"w":55,"h":18},{"x":2180,"y":240,"w":55,"h":18},{"x":2320,"y":180,"w":55,"h":18},{"x":2460,"y":120,"w":55,"h":18},{"x":2600,"y":180,"w":55,"h":18},{"x":2760,"y":240,"w":65,"h":18},{"x":2920,"y":300,"w":65,"h":18},{"x":3080,"y":220,"w":65,"h":18},{"x":3220,"y":140,"w":80,"h":18}],
+        enemies:[{"x":200,"y":383,"v":0,"hp":6},{"x":540,"y":263,"v":4,"hp":6},{"x":1000,"y":173,"v":3,"hp":6},{"x":1230,"y":53,"v":5,"hp":7},{"x":1500,"y":153,"v":4,"hp":7},{"x":1880,"y":333,"v":3,"hp":7},{"x":2060,"y":273,"v":5,"hp":7},{"x":2480,"y":93,"v":4,"hp":8},{"x":3090,"y":193,"v":5,"hp":8},{"x":3240,"y":113,"v":4,"hp":9}],
+        coins:[{"x":200,"y":390},{"x":310,"y":360},{"x":420,"y":330},{"x":530,"y":300},{"x":640,"y":270},{"x":750,"y":240},{"x":860,"y":210},{"x":990,"y":180},{"x":1110,"y":120},{"x":1230,"y":60},{"x":1400,"y":110},{"x":1520,"y":160},{"x":1640,"y":220},{"x":1760,"y":280},{"x":1880,"y":340},{"x":2060,"y":280},{"x":2200,"y":220},{"x":2340,"y":160},{"x":2480,"y":100},{"x":2620,"y":160},{"x":2780,"y":220},{"x":2940,"y":280},{"x":3100,"y":200},{"x":3240,"y":120}],
+        goalX:3290,goalY:0,timePar:220,timeGold:160,
+        qblocks:[{"x":970,"y":117},{"x":1210,"y":-3},{"x":2460,"y":37},{"x":3080,"y":137},{"x":3220,"y":57}],
+        'platColors':['#101a2a','#1a2e4a','#2a5080','#4a80bb','#6aaaf0'],'accentColor':'#4488cc','accentColor2':'#88ddff'
+      }
+      ,{
+        name:"BLIZZARD PEAK",width:3600,bgColors:["#040812", "#0a1428"],skyStars:true,misty:true,
+        platforms:[{"x":0,"y":450,"w":3600,"h":60},{"x":200,"y":400,"w":55,"h":18},{"x":360,"y":350,"w":55,"h":18},{"x":520,"y":290,"w":55,"h":18},{"x":680,"y":240,"w":55,"h":18},{"x":840,"y":290,"w":55,"h":18},{"x":1000,"y":350,"w":55,"h":18},{"x":1200,"y":400,"w":70,"h":18},{"x":1380,"y":310,"w":55,"h":18},{"x":1540,"y":220,"w":55,"h":18},{"x":1700,"y":140,"w":55,"h":18},{"x":1860,"y":80,"w":55,"h":18},{"x":2020,"y":140,"w":55,"h":18},{"x":2170,"y":210,"w":55,"h":18},{"x":2320,"y":280,"w":55,"h":18},{"x":2470,"y":350,"w":55,"h":18},{"x":2680,"y":300,"w":65,"h":18},{"x":2840,"y":220,"w":65,"h":18},{"x":3000,"y":150,"w":65,"h":18},{"x":3160,"y":80,"w":65,"h":18},{"x":3340,"y":140,"w":90,"h":18}],
+        enemies:[{"x":220,"y":373,"v":0,"hp":6},{"x":700,"y":213,"v":4,"hp":6},{"x":1020,"y":323,"v":3,"hp":7},{"x":1560,"y":193,"v":5,"hp":7},{"x":1880,"y":53,"v":4,"hp":7},{"x":2040,"y":113,"v":3,"hp":8},{"x":2490,"y":323,"v":5,"hp":8},{"x":2860,"y":193,"v":4,"hp":8},{"x":3020,"y":123,"v":5,"hp":9},{"x":3360,"y":113,"v":4,"hp":9}],
+        coins:[{"x":220,"y":380},{"x":380,"y":330},{"x":540,"y":270},{"x":700,"y":220},{"x":860,"y":270},{"x":1020,"y":330},{"x":1220,"y":380},{"x":1400,"y":290},{"x":1560,"y":200},{"x":1720,"y":120},{"x":1880,"y":60},{"x":2040,"y":120},{"x":2190,"y":190},{"x":2340,"y":260},{"x":2490,"y":330},{"x":2700,"y":280},{"x":2860,"y":200},{"x":3020,"y":130},{"x":3180,"y":60},{"x":3360,"y":120}],
+        goalX:3420,goalY:0,timePar:240,timeGold:175,
+        qblocks:[{"x":680,"y":157},{"x":1700,"y":57},{"x":1860,"y":-3},{"x":3000,"y":67},{"x":3340,"y":57}],
+        'platColors':['#101a2a','#1a2e4a','#2a5080','#4a80bb','#6aaaf0'],'accentColor':'#4488cc','accentColor2':'#88ddff'
+      }
+      ,{
+        name:"ICE CAVERN",width:3800,bgColors:["#03060f", "#08101e"],skyStars:true,misty:true,
+        platforms:[{"x":0,"y":450,"w":3800,"h":60},{"x":180,"y":420,"w":60,"h":18},{"x":310,"y":390,"w":60,"h":18},{"x":440,"y":360,"w":60,"h":18},{"x":570,"y":330,"w":60,"h":18},{"x":700,"y":300,"w":60,"h":18},{"x":830,"y":270,"w":60,"h":18},{"x":990,"y":210,"w":65,"h":18},{"x":1130,"y":150,"w":65,"h":18},{"x":1270,"y":90,"w":65,"h":18},{"x":1430,"y":130,"w":65,"h":18},{"x":1570,"y":180,"w":65,"h":18},{"x":1710,"y":240,"w":65,"h":18},{"x":1850,"y":300,"w":65,"h":18},{"x":1990,"y":360,"w":65,"h":18},{"x":2180,"y":290,"w":60,"h":18},{"x":2330,"y":220,"w":60,"h":18},{"x":2480,"y":150,"w":60,"h":18},{"x":2630,"y":90,"w":60,"h":18},{"x":2780,"y":150,"w":60,"h":18},{"x":2970,"y":220,"w":70,"h":18},{"x":3130,"y":290,"w":70,"h":18},{"x":3290,"y":210,"w":70,"h":18},{"x":3460,"y":140,"w":90,"h":18}],
+        enemies:[{"x":200,"y":393,"v":0,"hp":7},{"x":590,"y":303,"v":4,"hp":7},{"x":1010,"y":183,"v":3,"hp":7},{"x":1290,"y":63,"v":5,"hp":8},{"x":1870,"y":273,"v":4,"hp":8},{"x":2010,"y":333,"v":3,"hp":8},{"x":2650,"y":63,"v":5,"hp":9},{"x":2800,"y":123,"v":4,"hp":9},{"x":3150,"y":263,"v":5,"hp":9},{"x":3310,"y":183,"v":4,"hp":10},{"x":3480,"y":113,"v":5,"hp":10}],
+        coins:[{"x":200,"y":400},{"x":330,"y":370},{"x":460,"y":340},{"x":590,"y":310},{"x":720,"y":280},{"x":850,"y":250},{"x":1010,"y":190},{"x":1150,"y":130},{"x":1290,"y":70},{"x":1450,"y":110},{"x":1590,"y":160},{"x":1730,"y":220},{"x":1870,"y":280},{"x":2010,"y":340},{"x":2200,"y":270},{"x":2350,"y":200},{"x":2500,"y":130},{"x":2650,"y":70},{"x":2800,"y":130},{"x":2990,"y":200},{"x":3150,"y":270},{"x":3310,"y":190},{"x":3480,"y":120}],
+        goalX:3540,goalY:0,timePar:260,timeGold:190,
+        qblocks:[{"x":990,"y":127},{"x":1270,"y":7},{"x":2630,"y":7},{"x":3290,"y":127},{"x":3460,"y":57}],
+        'platColors':['#101a2a','#1a2e4a','#2a5080','#4a80bb','#6aaaf0'],'accentColor':'#4488cc','accentColor2':'#88ddff'
+      }
+      ,{
+        name:"AVALANCHE RUN",width:4200,bgColors:["#030610", "#08101c"],skyStars:true,misty:true,
+        platforms:[{"x":0,"y":450,"w":4200,"h":60},{"x":200,"y":400,"w":55,"h":18},{"x":300,"y":380,"w":55,"h":18},{"x":400,"y":360,"w":55,"h":18},{"x":500,"y":340,"w":55,"h":18},{"x":600,"y":320,"w":55,"h":18},{"x":700,"y":300,"w":55,"h":18},{"x":900,"y":280,"w":65,"h":18},{"x":1060,"y":210,"w":65,"h":18},{"x":1220,"y":150,"w":65,"h":18},{"x":1380,"y":90,"w":65,"h":18},{"x":1560,"y":160,"w":60,"h":18},{"x":1720,"y":230,"w":60,"h":18},{"x":1880,"y":300,"w":60,"h":18},{"x":2040,"y":370,"w":60,"h":18},{"x":2230,"y":310,"w":65,"h":18},{"x":2390,"y":240,"w":65,"h":18},{"x":2550,"y":170,"w":65,"h":18},{"x":2710,"y":110,"w":65,"h":18},{"x":2870,"y":170,"w":65,"h":18},{"x":3070,"y":230,"w":70,"h":18},{"x":3240,"y":300,"w":70,"h":18},{"x":3400,"y":220,"w":70,"h":18},{"x":3570,"y":150,"w":70,"h":18},{"x":3740,"y":80,"w":70,"h":18},{"x":3920,"y":150,"w":80,"h":18},{"x":4050,"y":90,"w":100,"h":18}],
+        enemies:[{"x":220,"y":373,"v":0,"hp":7},{"x":500,"y":343,"v":3,"hp":7},{"x":920,"y":253,"v":4,"hp":8},{"x":1240,"y":123,"v":5,"hp":8},{"x":1580,"y":133,"v":3,"hp":8},{"x":2060,"y":343,"v":4,"hp":9},{"x":2410,"y":213,"v":5,"hp":9},{"x":2730,"y":83,"v":4,"hp":9},{"x":3090,"y":203,"v":5,"hp":10},{"x":3420,"y":193,"v":4,"hp":10},{"x":3760,"y":53,"v":5,"hp":10},{"x":4070,"y":63,"v":4,"hp":11}],
+        coins:[{"x":220,"y":380},{"x":320,"y":360},{"x":420,"y":340},{"x":520,"y":320},{"x":620,"y":300},{"x":720,"y":280},{"x":920,"y":260},{"x":1080,"y":190},{"x":1240,"y":130},{"x":1400,"y":70},{"x":1580,"y":140},{"x":1740,"y":210},{"x":1900,"y":280},{"x":2060,"y":350},{"x":2250,"y":290},{"x":2410,"y":220},{"x":2570,"y":150},{"x":2730,"y":90},{"x":2890,"y":150},{"x":3090,"y":210},{"x":3260,"y":280},{"x":3420,"y":200},{"x":3590,"y":130},{"x":3760,"y":60},{"x":3940,"y":130},{"x":4070,"y":70}],
+        goalX:4130,goalY:-10,timePar:320,timeGold:240,
+        qblocks:[{"x":1220,"y":67},{"x":1380,"y":7},{"x":2710,"y":27},{"x":3740,"y":-3},{"x":4050,"y":7}],
+        'platColors':['#101a2a','#1a2e4a','#2a5080','#4a80bb','#6aaaf0'],'accentColor':'#4488cc','accentColor2':'#88ddff'
+      }
+      ,{
+        name:"FROST FORTRESS",width:900,bgColors:["#000814", "#001028"],skyStars:true,misty:true,
+        platforms:[{"x":0,"y":450,"w":900,"h":60},{"x":100,"y":350,"w":100,"h":18},{"x":700,"y":350,"w":100,"h":18},{"x":400,"y":250,"w":100,"h":18}],
+        enemies:[{"x":600,"y":310,"v":6,"hp":65,"maxHp":65,"w":120,"h":140}],
+        coins:[],
+        goalX:-1000,goalY:-1000,timePar:120,timeGold:60,
+        qblocks:[{"x":136,"y":200},{"x":736,"y":200}],
+      }
+        ]},
+      {name:'SHADOW REALM',color:'#3d0080',borderColor:'#6010c0',emoji:'👁',desc:'DARKNESS INCARNATE',
+        levels:[
+{
+        name:"TWILIGHT MOOR",width:3400,bgColors:["#0a0014", "#18002a"],skyStars:true,misty:false,
+        platforms:[{"x":0,"y":450,"w":3400,"h":60},{"x":200,"y":390,"w":75,"h":18},{"x":360,"y":320,"w":75,"h":18},{"x":530,"y":250,"w":75,"h":18},{"x":700,"y":190,"w":75,"h":18},{"x":870,"y":250,"w":75,"h":18},{"x":1040,"y":320,"w":75,"h":18},{"x":1210,"y":390,"w":75,"h":18},{"x":1400,"y":330,"w":65,"h":18},{"x":1560,"y":260,"w":65,"h":18},{"x":1720,"y":190,"w":65,"h":18},{"x":1880,"y":130,"w":65,"h":18},{"x":2050,"y":190,"w":65,"h":18},{"x":2210,"y":260,"w":65,"h":18},{"x":2370,"y":330,"w":65,"h":18},{"x":2580,"y":270,"w":75,"h":18},{"x":2760,"y":190,"w":75,"h":18},{"x":2940,"y":120,"w":75,"h":18},{"x":3120,"y":190,"w":90,"h":18}],
+        enemies:[{"x":220,"y":363,"v":0,"hp":8},{"x":550,"y":223,"v":4,"hp":8},{"x":1230,"y":363,"v":3,"hp":9},{"x":1580,"y":233,"v":5,"hp":9},{"x":1900,"y":103,"v":4,"hp":9},{"x":2230,"y":233,"v":5,"hp":10},{"x":2780,"y":163,"v":4,"hp":10},{"x":2960,"y":93,"v":5,"hp":10},{"x":3140,"y":163,"v":4,"hp":11}],
+        coins:[{"x":220,"y":370},{"x":380,"y":300},{"x":550,"y":230},{"x":720,"y":170},{"x":890,"y":230},{"x":1060,"y":300},{"x":1230,"y":370},{"x":1420,"y":310},{"x":1580,"y":240},{"x":1740,"y":170},{"x":1900,"y":110},{"x":2070,"y":170},{"x":2230,"y":240},{"x":2390,"y":310},{"x":2600,"y":250},{"x":2780,"y":170},{"x":2960,"y":100},{"x":3140,"y":170}],
+        goalX:3200,goalY:50,timePar:210,timeGold:150,
+        qblocks:[{"x":530,"y":167},{"x":700,"y":107},{"x":1880,"y":47},{"x":2940,"y":37},{"x":3120,"y":107}],
+        'platColors':['#0a0018','#160028','#2a1050','#4a2080','#6a40a0'],'accentColor':'#8800cc','accentColor2':'#cc44ff'
+      }
+      ,{
+        name:"PHANTOM BRIDGE",width:3600,bgColors:["#080010", "#12001e"],skyStars:true,misty:false,
+        platforms:[{"x":0,"y":450,"w":3600,"h":60},{"x":200,"y":400,"w":45,"h":18},{"x":350,"y":350,"w":45,"h":18},{"x":500,"y":300,"w":45,"h":18},{"x":650,"y":250,"w":45,"h":18},{"x":800,"y":200,"w":45,"h":18},{"x":950,"y":250,"w":45,"h":18},{"x":1100,"y":300,"w":45,"h":18},{"x":1250,"y":350,"w":45,"h":18},{"x":1450,"y":400,"w":70,"h":18},{"x":1620,"y":310,"w":45,"h":18},{"x":1770,"y":220,"w":45,"h":18},{"x":1920,"y":150,"w":45,"h":18},{"x":2070,"y":90,"w":45,"h":18},{"x":2220,"y":150,"w":45,"h":18},{"x":2370,"y":220,"w":45,"h":18},{"x":2520,"y":290,"w":45,"h":18},{"x":2670,"y":360,"w":45,"h":18},{"x":2880,"y":300,"w":60,"h":18},{"x":3040,"y":220,"w":60,"h":18},{"x":3200,"y":150,"w":60,"h":18},{"x":3360,"y":90,"w":60,"h":18},{"x":3500,"y":150,"w":80,"h":18}],
+        enemies:[{"x":215,"y":373,"v":0,"hp":8},{"x":665,"y":223,"v":4,"hp":9},{"x":970,"y":223,"v":3,"hp":9},{"x":1640,"y":283,"v":5,"hp":10},{"x":1940,"y":123,"v":4,"hp":10},{"x":2090,"y":63,"v":5,"hp":10},{"x":2690,"y":333,"v":4,"hp":11},{"x":3060,"y":193,"v":5,"hp":11},{"x":3220,"y":123,"v":4,"hp":11},{"x":3520,"y":123,"v":5,"hp":12}],
+        coins:[{"x":220,"y":380},{"x":370,"y":330},{"x":520,"y":280},{"x":670,"y":230},{"x":820,"y":180},{"x":970,"y":230},{"x":1120,"y":280},{"x":1270,"y":330},{"x":1470,"y":380},{"x":1640,"y":290},{"x":1790,"y":200},{"x":1940,"y":130},{"x":2090,"y":70},{"x":2240,"y":130},{"x":2390,"y":200},{"x":2540,"y":270},{"x":2690,"y":340},{"x":2900,"y":280},{"x":3060,"y":200},{"x":3220,"y":130},{"x":3380,"y":70},{"x":3520,"y":130}],
+        goalX:3570,goalY:10,timePar:230,timeGold:170,
+        qblocks:[{"x":800,"y":117},{"x":1920,"y":67},{"x":2070,"y":7},{"x":3200,"y":67},{"x":3360,"y":7}],
+        'platColors':['#0a0018','#160028','#2a1050','#4a2080','#6a40a0'],'accentColor':'#8800cc','accentColor2':'#cc44ff'
+      }
+      ,{
+        name:"SOUL SPIRE",width:3800,bgColors:["#06000e", "#0e001c"],skyStars:true,misty:false,
+        platforms:[{"x":0,"y":450,"w":3800,"h":60},{"x":200,"y":410,"w":55,"h":18},{"x":340,"y":410,"w":55,"h":18},{"x":480,"y":410,"w":55,"h":18},{"x":620,"y":410,"w":55,"h":18},{"x":760,"y":410,"w":55,"h":18},{"x":950,"y":350,"w":65,"h":18},{"x":1090,"y":280,"w":65,"h":18},{"x":1230,"y":210,"w":65,"h":18},{"x":1370,"y":150,"w":65,"h":18},{"x":1510,"y":90,"w":65,"h":18},{"x":1660,"y":150,"w":60,"h":18},{"x":1800,"y":220,"w":60,"h":18},{"x":1940,"y":290,"w":60,"h":18},{"x":2080,"y":360,"w":60,"h":18},{"x":2280,"y":290,"w":65,"h":18},{"x":2440,"y":210,"w":65,"h":18},{"x":2600,"y":140,"w":65,"h":18},{"x":2760,"y":80,"w":65,"h":18},{"x":2930,"y":150,"w":65,"h":18},{"x":3090,"y":220,"w":65,"h":18},{"x":3250,"y":290,"w":65,"h":18},{"x":3430,"y":200,"w":80,"h":18},{"x":3630,"y":140,"w":90,"h":18}],
+        enemies:[{"x":215,"y":383,"v":0,"hp":9},{"x":495,"y":383,"v":3,"hp":9},{"x":965,"y":323,"v":4,"hp":9},{"x":1250,"y":183,"v":5,"hp":10},{"x":1530,"y":63,"v":4,"hp":10},{"x":1820,"y":193,"v":3,"hp":10},{"x":2100,"y":333,"v":5,"hp":11},{"x":2460,"y":183,"v":4,"hp":11},{"x":2780,"y":53,"v":5,"hp":11},{"x":2950,"y":123,"v":4,"hp":12},{"x":3270,"y":263,"v":5,"hp":12},{"x":3650,"y":113,"v":4,"hp":12}],
+        coins:[{"x":220,"y":390},{"x":360,"y":390},{"x":500,"y":390},{"x":640,"y":390},{"x":780,"y":390},{"x":970,"y":330},{"x":1110,"y":260},{"x":1250,"y":190},{"x":1390,"y":130},{"x":1530,"y":70},{"x":1680,"y":130},{"x":1820,"y":200},{"x":1960,"y":270},{"x":2100,"y":340},{"x":2300,"y":270},{"x":2460,"y":190},{"x":2620,"y":120},{"x":2780,"y":60},{"x":2950,"y":130},{"x":3110,"y":200},{"x":3270,"y":270},{"x":3450,"y":180},{"x":3650,"y":120}],
+        goalX:3710,goalY:0,timePar:260,timeGold:195,
+        qblocks:[{"x":1370,"y":67},{"x":1510,"y":7},{"x":2760,"y":-3},{"x":3250,"y":207},{"x":3630,"y":57}],
+        'platColors':['#0a0018','#160028','#2a1050','#4a2080','#6a40a0'],'accentColor':'#8800cc','accentColor2':'#cc44ff'
+      }
+      ,{
+        name:"DARK CITADEL",width:4000,bgColors:["#05000c", "#0c0018"],skyStars:true,misty:false,
+        platforms:[{"x":0,"y":450,"w":4000,"h":60},{"x":200,"y":400,"w":60,"h":18},{"x":330,"y":350,"w":60,"h":18},{"x":460,"y":300,"w":60,"h":18},{"x":590,"y":250,"w":60,"h":18},{"x":720,"y":200,"w":60,"h":18},{"x":850,"y":250,"w":60,"h":18},{"x":980,"y":300,"w":60,"h":18},{"x":1120,"y":380,"w":70,"h":18},{"x":1120,"y":200,"w":30,"h":18},{"x":1120,"y":100,"w":30,"h":18},{"x":1290,"y":320,"w":55,"h":18},{"x":1440,"y":250,"w":55,"h":18},{"x":1590,"y":180,"w":55,"h":18},{"x":1740,"y":120,"w":55,"h":18},{"x":1890,"y":60,"w":55,"h":18},{"x":2040,"y":120,"w":55,"h":18},{"x":2190,"y":190,"w":55,"h":18},{"x":2340,"y":260,"w":55,"h":18},{"x":2490,"y":330,"w":55,"h":18},{"x":2700,"y":270,"w":65,"h":18},{"x":2870,"y":190,"w":65,"h":18},{"x":3040,"y":120,"w":65,"h":18},{"x":3210,"y":60,"w":65,"h":18},{"x":3380,"y":130,"w":65,"h":18},{"x":3580,"y":200,"w":70,"h":18},{"x":3750,"y":270,"w":70,"h":18},{"x":3900,"y":180,"w":80,"h":18}],
+        enemies:[{"x":220,"y":373,"v":0,"hp":9},{"x":600,"y":223,"v":4,"hp":10},{"x":990,"y":273,"v":3,"hp":10},{"x":1460,"y":223,"v":5,"hp":11},{"x":1760,"y":93,"v":4,"hp":11},{"x":1910,"y":33,"v":5,"hp":11},{"x":2060,"y":93,"v":4,"hp":12},{"x":2510,"y":303,"v":5,"hp":12},{"x":2890,"y":163,"v":4,"hp":12},{"x":3230,"y":33,"v":5,"hp":13},{"x":3600,"y":173,"v":4,"hp":13},{"x":3920,"y":153,"v":5,"hp":13}],
+        coins:[{"x":220,"y":380},{"x":350,"y":330},{"x":480,"y":280},{"x":610,"y":230},{"x":740,"y":180},{"x":870,"y":230},{"x":1000,"y":280},{"x":1140,"y":360},{"x":1140,"y":180},{"x":1140,"y":80},{"x":1310,"y":300},{"x":1460,"y":230},{"x":1610,"y":160},{"x":1760,"y":100},{"x":1910,"y":40},{"x":2060,"y":100},{"x":2210,"y":170},{"x":2360,"y":240},{"x":2510,"y":310},{"x":2720,"y":250},{"x":2890,"y":170},{"x":3060,"y":100},{"x":3230,"y":40},{"x":3400,"y":110},{"x":3600,"y":180},{"x":3770,"y":250},{"x":3920,"y":160}],
+        goalX:3970,goalY:40,timePar:290,timeGold:215,
+        qblocks:[{"x":720,"y":117},{"x":1740,"y":37},{"x":1890,"y":-23},{"x":3210,"y":-23},{"x":3900,"y":97}],
+        'platColors':['#0a0018','#160028','#2a1050','#4a2080','#6a40a0'],'accentColor':'#8800cc','accentColor2':'#cc44ff'
+      }
+      ,{
+        name:"CHAOS CANYON",width:4400,bgColors:["#040008", "#0a0014"],skyStars:true,misty:false,
+        platforms:[{"x":0,"y":450,"w":4400,"h":60},{"x":200,"y":400,"w":55,"h":18},{"x":310,"y":375,"w":55,"h":18},{"x":420,"y":350,"w":55,"h":18},{"x":530,"y":325,"w":55,"h":18},{"x":640,"y":300,"w":55,"h":18},{"x":850,"y":270,"w":60,"h":18},{"x":1010,"y":200,"w":60,"h":18},{"x":1170,"y":140,"w":60,"h":18},{"x":1330,"y":80,"w":60,"h":18},{"x":1510,"y":150,"w":55,"h":18},{"x":1670,"y":220,"w":55,"h":18},{"x":1830,"y":300,"w":55,"h":18},{"x":1990,"y":380,"w":55,"h":18},{"x":2180,"y":300,"w":55,"h":18},{"x":2340,"y":220,"w":55,"h":18},{"x":2500,"y":150,"w":55,"h":18},{"x":2660,"y":90,"w":55,"h":18},{"x":2820,"y":150,"w":55,"h":18},{"x":2980,"y":220,"w":55,"h":18},{"x":3200,"y":290,"w":65,"h":18},{"x":3370,"y":200,"w":65,"h":18},{"x":3540,"y":130,"w":65,"h":18},{"x":3710,"y":70,"w":65,"h":18},{"x":3880,"y":140,"w":65,"h":18},{"x":4080,"y":200,"w":80,"h":18},{"x":4230,"y":100,"w":100,"h":18}],
+        enemies:[{"x":220,"y":373,"v":0,"hp":10},{"x":440,"y":353,"v":3,"hp":10},{"x":870,"y":243,"v":4,"hp":11},{"x":1190,"y":113,"v":5,"hp":11},{"x":1350,"y":53,"v":4,"hp":11},{"x":1690,"y":193,"v":3,"hp":12},{"x":2010,"y":353,"v":5,"hp":12},{"x":2520,"y":123,"v":4,"hp":12},{"x":2840,"y":123,"v":5,"hp":13},{"x":3220,"y":263,"v":4,"hp":13},{"x":3560,"y":103,"v":5,"hp":13},{"x":3900,"y":113,"v":4,"hp":14},{"x":4250,"y":73,"v":5,"hp":14}],
+        coins:[{"x":220,"y":380},{"x":330,"y":355},{"x":440,"y":330},{"x":550,"y":305},{"x":660,"y":280},{"x":870,"y":250},{"x":1030,"y":180},{"x":1190,"y":120},{"x":1350,"y":60},{"x":1530,"y":130},{"x":1690,"y":200},{"x":1850,"y":280},{"x":2010,"y":360},{"x":2200,"y":280},{"x":2360,"y":200},{"x":2520,"y":130},{"x":2680,"y":70},{"x":2840,"y":130},{"x":3000,"y":200},{"x":3220,"y":270},{"x":3390,"y":180},{"x":3560,"y":110},{"x":3730,"y":50},{"x":3900,"y":120},{"x":4100,"y":180},{"x":4250,"y":80}],
+        goalX:4310,goalY:-20,timePar:340,timeGold:255,
+        qblocks:[{"x":1170,"y":57},{"x":1330,"y":-3},{"x":2660,"y":7},{"x":3710,"y":-13},{"x":4230,"y":17}],
+        'platColors':['#0a0018','#160028','#2a1050','#4a2080','#6a40a0'],'accentColor':'#8800cc','accentColor2':'#cc44ff'
+      }
+      ,{
+        name:"DEMON THRONE",width:900,bgColors:["#0a0010", "#180020"],skyStars:true,misty:false,
+        platforms:[{"x":0,"y":450,"w":900,"h":60},{"x":100,"y":350,"w":100,"h":18},{"x":700,"y":350,"w":100,"h":18},{"x":400,"y":250,"w":100,"h":18}],
+        enemies:[{"x":600,"y":310,"v":6,"hp":90,"maxHp":90,"w":120,"h":140}],
+        coins:[],
+        goalX:-1000,goalY:-1000,timePar:120,timeGold:60,
+        qblocks:[{"x":136,"y":200},{"x":736,"y":200}],
+      }
+        ]},
     ];
 
+    // ═══════════════════════════════════════════════════════
     //  UI CONTROLLER
     // ═══════════════════════════════════════════════════════
     const UI = {
       showScreen(id) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        if (id === 's-levelselect') this.buildLevelGrid();
+        if(id==='s-levelselect')this.buildLevelGrid();
+        if(id==='s-worldselect')this.buildWorldGrid();
+        if(id==='s-settings')buildSettingsUI();
+      },
+      buildWorldGrid() {
+        const grid=document.getElementById('world-grid');if(!grid)return;grid.innerHTML='';
+        WORLDS.forEach((wd,wi)=>{
+          const w=wi+1,accessible=isWorldAccessible(w),unlocked=getWorldUnlocked(w);
+          const totalStars=Array.from({length:6},(_,i)=>levelStars[`${w}-${i+1}`]||0).reduce((a,b)=>a+b,0);
+          const div=document.createElement('div');
+          div.className='world-card'+(accessible?'':' locked');
+          div.style.borderColor=accessible?wd.borderColor:'#222';
+          div.style.color=accessible?'#ccc':'#333';
+          if(accessible)div.style.boxShadow=`0 0 15px ${wd.color}44`;
+          const prog=accessible?`${Math.min(unlocked-1,6)}/6 LEVELS`:'LOCKED';
+          div.innerHTML=`<div style="font-size:22px">${wd.emoji}</div>
+            <div class="wc-name" style="color:${accessible?'#f5c518':'#333'}">${wd.name}</div>
+            <div style="font-size:6px;color:${accessible?'#888':'#333'};margin-top:2px">${wd.desc}</div>
+            <div class="wc-stars">${accessible?'★'.repeat(Math.floor(totalStars/6))+'☆'.repeat(3-Math.floor(totalStars/6)):'🔒'}</div>
+            <div class="wc-prog">${prog}</div>`;
+          if(accessible)div.onclick=()=>{selectedWorld=w;this.showScreen('s-levelselect');};
+          grid.appendChild(div);
+        });
       },
       buildLevelGrid() {
-        const grid = document.getElementById('level-grid');
-        grid.innerHTML = '';
-        const unlocked = parseInt(localStorage.getItem('pogl_unlocked') || '1');
-        LEVELS.forEach((lv, i) => {
-          const btn = document.createElement('button');
-          btn.className = 'lvl-btn' + (i >= unlocked ? ' locked' : '');
-          const stars = levelStars[i + 1] || 0;
-          btn.innerHTML = `<div style="font-size:8px">${i >= unlocked ? '🔒' : 'LVL ' + (i + 1)}</div><div style="font-size:6px;color:#888">${i < unlocked ? lv.name.substring(0, 10) : '???'}</div><div class="stars">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</div>`;
-          if (i < unlocked) btn.onclick = () => { UI.startGame(i + 1); };
+        const wd=WORLDS[selectedWorld-1];
+        const titleEl=document.getElementById('ls-world-name');
+        if(titleEl)titleEl.textContent=`— ${wd.name} —`;
+        const grid=document.getElementById('level-grid');if(!grid)return;grid.innerHTML='';
+        const unlocked=getWorldUnlocked(selectedWorld);
+        wd.levels.forEach((lv,i)=>{
+          const btn=document.createElement('button'),locked=i>=unlocked;
+          btn.className='lvl-btn'+(locked?' locked':'');
+          if(!locked)btn.style.borderColor=wd.borderColor+'88';
+          const stars=levelStars[`${selectedWorld}-${i+1}`]||0;
+          btn.innerHTML=`<div style="font-size:8px">${locked?'🔒':'W'+selectedWorld+'-'+(i+1)}</div>
+            <div style="font-size:6px;color:#888">${locked?'???':lv.name.substring(0,10)}</div>
+            <div class="stars">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div>`;
+          if(!locked)btn.onclick=()=>this.startGame(selectedWorld,i+1);
           grid.appendChild(btn);
         });
       },
-      startGame(lvl) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        score = 0; coins = 0; currentLevel = lvl; levelTime = 0;
-        GS = 'playing';
-        initLevel(lvl);
-        startMusic();
-        resumeAC();
+      startGame(world,lvl) {
+        document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+        document.getElementById('hud').style.display='';
+        document.getElementById('builder-sidebar').style.display='none';
+        document.getElementById('builder-bar').style.display='none';
+        score=0;coins=0;currentWorld=world;currentLevel=lvl;levelTime=0;
+        GS='playing';initLevel(lvl);startMusic();resumeAC();
       },
-      resume() { GS = 'playing'; document.getElementById('s-pause').classList.remove('active'); startMusic(); },
-      restart() { this.startGame(currentLevel); document.getElementById('s-gameover').classList.remove('active'); },
+      resume(){GS='playing';document.getElementById('s-pause').classList.remove('active');startMusic();},
+      restart(){this.startGame(currentWorld,currentLevel);document.getElementById('s-gameover').classList.remove('active');},
       nextLevel() {
         document.getElementById('s-complete').classList.remove('active');
-        if (currentLevel < LEVELS.length) this.startGame(currentLevel + 1);
+        if(currentLevel<6)this.startGame(currentWorld,currentLevel+1);
+        else if(currentWorld<WORLDS.length)this.startGame(currentWorld+1,1);
         else this.showScreen('s-title');
       },
       backToTitle() {
         stopMusic();
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
         document.getElementById('s-title').classList.add('active');
-        GS = 'title';
+        document.getElementById('hud').style.display='';
+        document.getElementById('builder-sidebar').style.display='none';
+        document.getElementById('builder-bar').style.display='none';
+        GS='title';
       },
-      pause() {
-        GS = 'paused'; stopMusic();
-        document.getElementById('s-pause').classList.add('active');
+      pause(){GS='paused';stopMusic();document.getElementById('s-pause').classList.add('active');},
+      resetBindings(){Object.assign(KB,DEFAULT_KB);try{localStorage.removeItem('pogl_kb');}catch(e){}buildSettingsUI();updateHUDKeys();},
+      openBuilder() {
+        document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+        document.getElementById('hud').style.display='none';
+        document.getElementById('builder-sidebar').style.display='flex';
+        document.getElementById('builder-bar').style.display='flex';
+        GS='builder';
+        if(!BLD.levelData)BLD.newLevel();
+        BLD.updateInfo();
+      },
+      exitBuilder() {
+        document.getElementById('hud').style.display='';
+        document.getElementById('builder-sidebar').style.display='none';
+        document.getElementById('builder-bar').style.display='none';
+        GS='title';
+        document.getElementById('s-title').classList.add('active');
+      },
+      setTool(t) {
+        BLD.tool=t;
+        document.querySelectorAll('.bl-tool').forEach(el=>el.classList.remove('active'));
+        const el=document.getElementById('bl-'+t);if(el)el.classList.add('active');
       },
     };
+
+
+
+    //  UI CONTROLLER
+    // ═══════════════════════════════════════════════════════
 
     // ═══════════════════════════════════════════════════════
     //  GAME INIT
@@ -1410,7 +1793,7 @@
     const GRAV = 0.52, JFORCE = -13, SPEED = 3.8;
 
     function initLevel(lvl) {
-      const ld = LEVELS[lvl - 1];
+      const ld = WORLDS[currentWorld - 1].levels[lvl - 1];
       camera = { x: 0, y: 0 };
       goalRect = { x: ld.goalX, y: ld.goalY, w: 100, h: 140, triggered: false };
       projectiles = []; particles = []; powerups = []; enemyProjectiles = [];
@@ -1440,7 +1823,7 @@
       collectibles = ld.coins.map(c => ({ ...c, collected: false, type: 'coin' }));
       levelTime = 0;
 
-      document.getElementById('lvl-txt').textContent = lvl;
+      document.getElementById('lvl-txt').textContent = `W${currentWorld}-${lvl}`;
       updateHUD();
       switchMusicForLevel();
     }
@@ -1481,19 +1864,20 @@
       setTimeout(() => el.remove(), 950);
     }
 
+
     function updatePlayer() {
       const p = player;
-      const ld = LEVELS[currentLevel - 1];
+      const ld = getLevelData();
 
-      if (JP['Escape'] || JP['p'] || JP['P']) { UI.pause(); return; }
+      if (kPress('pause')) { UI.pause(); return; }
 
-      if (K['ArrowLeft']) { p.vx = -SPEED; p.facingRight = false; }
-      else if (K['ArrowRight']) { p.vx = SPEED; p.facingRight = true; }
+      if (kHeld('left')) { p.vx = -SPEED; p.facingRight = false; }
+      else if (kHeld('right')) { p.vx = SPEED; p.facingRight = true; }
       else p.vx *= .72;
 
       if (p.chargeOn) p.vx = p.facingRight ? 10 : -10;
 
-      if (JP['z'] || JP['Z'] || JP['ArrowUp']) p.jumpBuffer = 10;
+      if (kPress('jump')) p.jumpBuffer = 10;
       if (p.jumpBuffer > 0) p.jumpBuffer--;
 
       if (p.onGround) p.coyoteTimer = 6;
@@ -1516,7 +1900,7 @@
       }
 
       const rapidFireActive = p.rapidFire > 0 && p.activeNote === 'note';
-      const shootTrigger = rapidFireActive ? (K['q'] || K['Q']) : (JP['q'] || JP['Q']);
+      const shootTrigger = rapidFireActive ? kHeld('shoot') : kPress('shoot');
       if (shootTrigger && p.cooldowns.shoot <= 0) {
         const dir = p.facingRight ? 1 : -1;
         const noteType = p.activeNote || 'note';
@@ -1524,28 +1908,28 @@
         sfx('shoot'); p.cooldowns.shoot = rapidFireActive ? 5 : p.CD_MAX.shoot;
       }
 
-      if ((JP['w'] || JP['W']) && p.cooldowns.skirl <= 0) {
+      if (kPress('skirl') && p.cooldowns.skirl <= 0) {
         for (let a = 0; a < Math.PI * 2; a += Math.PI / 5)
           projectiles.push({ x: p.x + 16, y: p.y + 20, vx: Math.cos(a) * 6, vy: Math.sin(a) * 6, type: 'skirl', life: 45, dmg: 2 });
         spawnPart(p.x + 16, p.y + 20, '#00aaff', 20, 5); sfx('skirl'); p.cooldowns.skirl = p.CD_MAX.skirl;
         floatText('SKIRL BLAST!', p.x - camera.x - 40, p.y - camera.y - 20, '#00aaff');
       }
-      if ((JP['e'] || JP['E']) && p.cooldowns.charge <= 0) {
+      if (kPress('charge') && p.cooldowns.charge <= 0) {
         p.chargeOn = true; p.chargeTimer = 32; p.invincible = 38;
         spawnPart(p.x + 16, p.y + 20, '#ff6600', 14, 4); sfx('charge'); p.cooldowns.charge = p.CD_MAX.charge;
         floatText('HIGHLAND CHARGE!', p.x - camera.x - 40, p.y - camera.y - 20, '#ff6600');
       }
-      if ((JP['r'] || JP['R']) && p.cooldowns.drone <= 0) {
+      if (kPress('drone') && p.cooldowns.drone <= 0) {
         const dir = p.facingRight ? 1 : -1;
         for (let i = 0; i < 6; i++)
           projectiles.push({ x: p.x + 16, y: p.y + 20, vx: dir * (7 + i * .6), vy: (Math.random() - .5) * 2, type: 'drone', life: 55 + i * 6, dmg: 1, delay: i * 5 });
         sfx('drone'); p.cooldowns.drone = p.CD_MAX.drone; floatText('ANCIENT DRONE!', p.x - camera.x - 40, p.y - camera.y - 20, '#4a8c3f');
       }
-      if ((JP['a'] || JP['A']) && p.cooldowns.shield <= 0) {
+      if (kPress('shield') && p.cooldowns.shield <= 0) {
         p.shieldOn = true; p.shieldTimer = 200; spawnPart(p.x + 16, p.y + 20, '#7fff00', 14, 3.5);
         sfx('shield'); p.cooldowns.shield = p.CD_MAX.shield; floatText('THISTLE SHIELD!', p.x - camera.x - 40, p.y - camera.y - 20, '#7fff00');
       }
-      if ((JP['s'] || JP['S']) && p.cooldowns.heal <= 0 && p.hp < p.maxHp) {
+      if (kPress('heal') && p.cooldowns.heal <= 0 && p.hp < p.maxHp) {
         p.hp = Math.min(p.maxHp, p.hp + 1); spawnPart(p.x + 16, p.y + 25, '#ff4488', 14, 3); spawnPart(p.x + 16, p.y + 25, '#fff', 8, 2);
         sfx('powerup_collect'); p.cooldowns.heal = p.CD_MAX.heal; floatText('+1 HP ❤️', p.x - camera.x - 30, p.y - camera.y - 20, '#ff4488');
         updateHUD();
@@ -1592,8 +1976,9 @@
       if (Math.abs(p.vx) > 0.5 && p.onGround) p.walkFrame++;
     }
 
+
     function updateProjectiles() {
-      const ld = LEVELS[currentLevel - 1];
+      const ld = getLevelData();
       projectiles = projectiles.filter(proj => {
         if ((proj.delay || 0) > 0) { proj.delay--; return true; }
         proj.x += proj.vx; proj.y += proj.vy; proj.life--;
@@ -1664,7 +2049,7 @@
         pu.vy += 0.25; if (pu.vy > 4) pu.vy = 4;
         pu.y += pu.vy; pu.life--;
 
-        const ld = LEVELS[currentLevel - 1];
+        const ld = getLevelData();
         for (const plat of ld.platforms) {
           if (overlap(pu.x, pu.y, 24, 24, plat.x, plat.y, plat.w, plat.h)) { pu.y = plat.y - 24; pu.vy = 0; }
         }
@@ -1688,12 +2073,12 @@
         return true;
       });
 
-      const ld = LEVELS[currentLevel - 1];
+      const ld = getLevelData();
       for (const qb of ld.qblocks) { if (qb.bumpTimer > 0) qb.bumpTimer--; }
     }
 
     function updateEnemies() {
-      const ld = LEVELS[currentLevel - 1];
+      const ld = getLevelData();
       for (const e of enemies) {
         if (e.dead) continue;
         if (e.hp <= 0) {
@@ -1804,7 +2189,7 @@
         ep.x += ep.vx; ep.y += ep.vy;
         ep.vy += GRAV * 0.2;
         ep.life--;
-        if (ep.life <= 0 || ep.y > H + 100 || ep.x < -100 || ep.x > LEVELS[currentLevel - 1].width + 100) return false;
+        if (ep.life <= 0 || ep.y > H + 100 || ep.x < -100 || ep.x > getLevelData().width + 100) return false;
 
         const r = ep.type === 'boss_note' ? 12 : 6;
 
@@ -1833,6 +2218,7 @@
       }
     }
 
+
     function checkGoal() {
       if (goalRect.triggered) return;
 
@@ -1850,24 +2236,26 @@
         goalRect.triggered = true;
         GS = 'complete'; sfx('castle'); stopMusic();
 
-        const ld = LEVELS[currentLevel - 1];
+        const ld = getLevelData();
         const secs = levelTime / 60;
         let stars = 1;
         if (secs <= ld.timeGold) stars = 3;
         else if (secs <= ld.timePar) stars = 2;
-        levelStars[currentLevel] = Math.max(levelStars[currentLevel] || 0, stars);
+        levelStars[`${currentWorld}-${currentLevel}`] = Math.max(levelStars[`${currentWorld}-${currentLevel}`] || 0, stars);
+        saveStars();
 
-        const prevUnlocked = parseInt(localStorage.getItem('pogl_unlocked') || '1');
-        if (currentLevel >= prevUnlocked && currentLevel < LEVELS.length)
-          localStorage.setItem('pogl_unlocked', String(currentLevel + 1));
+        setWorldUnlocked(currentWorld, currentLevel < 6 ? currentLevel + 1 : 7);
 
         const sc = document.getElementById('s-complete');
         sc.classList.add('active');
 
-        document.querySelector('#s-complete h2').innerHTML = currentLevel === 6 ? '🏆 GAME CLEARED! 🏆' : '🏰 CASTLE REACHED!';
+        const isGameEnd = currentLevel === 6 && currentWorld >= WORLDS.length - 1;
+        const isWorldEnd = currentLevel === 6;
+        document.querySelector('#s-complete h2').innerHTML = isGameEnd ? '🏆 GAME COMPLETE! 🏆' : isWorldEnd ? `🏰 WORLD ${currentWorld} CLEARED!` : '🏰 CASTLE REACHED!';
+        document.getElementById('btn-nextlvl').textContent = currentLevel < 6 ? 'NEXT LEVEL ▶' : `WORLD ${currentWorld+1} ▶`;
         document.getElementById('complete-stars').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
         document.getElementById('complete-stats').innerHTML = `SCORE: <span>${score}</span>&nbsp;&nbsp;COINS: <span>${coins}</span>&nbsp;&nbsp;TIME: <span>${formatTime(levelTime)}</span>`;
-        document.getElementById('btn-nextlvl').style.display = currentLevel < LEVELS.length ? '' : 'none';
+        document.getElementById('btn-nextlvl').style.display = (currentLevel < 6 || currentWorld < WORLDS.length - 1) ? '' : 'none';
       }
     }
 
@@ -1877,15 +2265,20 @@
     }
 
     function updateCamera() {
-      const ld = LEVELS[currentLevel - 1];
+      const ld = getLevelData();
       const tx = player.x - W / 2 + PW / 2;
       camera.x += (tx - camera.x) * .12;
       camera.x = Math.max(0, Math.min(camera.x, ld.width - W));
       camera.y = 0;
     }
 
+
+    function formatTime(frames) {
+      const s=Math.floor(frames/60),m=Math.floor(s/60);
+      return `${m}:${String(s%60).padStart(2,'0')}`;
+    }
     function drawScene() {
-      const ld = LEVELS[currentLevel - 1];
+      const ld = getLevelData();
       ctx.save();
       ctx.translate(-camera.x, -camera.y);
 
@@ -1927,7 +2320,8 @@
 
       for (const p of ld.platforms) {
         if (p.x + p.w < camera.x - 20 || p.x > camera.x + W + 20) continue;
-        ctx.fillStyle = p.h > 30 ? '#1a3010' : '#243a18'; ctx.fillRect(p.x, p.y, p.w, p.h);
+        const platC = ld.platColors||['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'];
+      ctx.fillStyle = p.h > 30 ? platC[0] : platC[1]; ctx.fillRect(p.x, p.y, p.w, p.h);
         for (let y2 = p.y + 6; y2 < p.y + p.h; y2 += 14) {
           for (let x2 = p.x; x2 < p.x + p.w; x2 += 20) {
             const off = ((Math.floor((y2 - p.y) / 14)) % 2) * 10;
@@ -1936,15 +2330,15 @@
           }
         }
         ctx.fillStyle = 'rgba(255,255,255,.06)'; ctx.fillRect(p.x, p.y, p.w, 1);
-        ctx.fillStyle = '#3a7a28'; ctx.fillRect(p.x, p.y, p.w, 5);
-        ctx.fillStyle = '#4a9a32'; ctx.fillRect(p.x, p.y, p.w, 2);
-        ctx.fillStyle = '#5ab840';
+        ctx.fillStyle = platC[2]; ctx.fillRect(p.x, p.y, p.w, 5);
+        ctx.fillStyle = platC[3]; ctx.fillRect(p.x, p.y, p.w, 2);
+        ctx.fillStyle = platC[4];
         for (let gx = p.x + 6; gx < p.x + p.w - 4; gx += 12) { ctx.fillRect(gx, p.y - 3, 2, 4); ctx.fillRect(gx + 4, p.y - 4, 2, 5); }
         if (p.h <= 25 && p.w > 60 && (p.x + p.y) % 3 === 0) {
           const tx = p.x + p.w - 18;
-          ctx.fillStyle = '#3aaa28'; ctx.fillRect(tx, p.y - 8, 2, 8);
-          ctx.fillStyle = '#5a2080'; ctx.fillRect(tx - 3, p.y - 12, 8, 5);
-          ctx.fillStyle = '#d460ff'; ctx.fillRect(tx - 1, p.y - 14, 4, 3);
+          ctx.fillStyle = platC[2]; ctx.fillRect(tx, p.y - 8, 2, 8);
+          ctx.fillStyle = ld.accentColor||'#5a2080'; ctx.fillRect(tx - 3, p.y - 12, 8, 5);
+          ctx.fillStyle = ld.accentColor2||'#d460ff'; ctx.fillRect(tx - 1, p.y - 14, 4, 3);
         }
       }
 
@@ -1999,7 +2393,7 @@
       for (const e of enemies) {
         if (e.dead || e.x + e.w < camera.x - 20 || e.x > camera.x + W + 20) continue;
         if (e.v === 6) {
-          drawNessie(ctx, e.x, e.y, e.hp, e.maxHp, frameCount);
+          drawBoss(ctx, e.x, e.y, e.hp, e.maxHp, frameCount, currentWorld);
         } else {
           drawDrum32(ctx, e.x, e.y, e.v, e.hp, e.maxHp, frameCount);
           ctx.font = '7px "Press Start 2P"'; ctx.textAlign = 'center';
@@ -2086,9 +2480,10 @@
       if (levelTime < 180) {
         const alpha = levelTime < 120 ? 1 : 1 - (levelTime - 120) / 60;
         ctx.globalAlpha = alpha; ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(W / 2 - 160, 14, 320, 36);
-        ctx.fillStyle = '#f5c518'; ctx.font = '11px "Press Start 2P"'; ctx.textAlign = 'center'; ctx.fillText(`LEVEL ${currentLevel}: ${LEVELS[currentLevel - 1].name}`, W / 2, 38); ctx.textAlign = 'left'; ctx.globalAlpha = 1;
+        ctx.fillStyle = '#f5c518'; ctx.font = '11px "Press Start 2P"'; ctx.textAlign = 'center'; ctx.fillText(`W${currentWorld}-${currentLevel}: ${getLevelData().name}`, W / 2, 38); ctx.textAlign = 'left'; ctx.globalAlpha = 1;
       }
     }
+
 
     function updateHUD() {
       if (!player) return;
@@ -2123,12 +2518,272 @@
         checkGoal(); updateHUD(); frameCount++; drawScene();
       } else if (GS === 'paused') {
         drawScene();
+      } else if (GS === 'builder') {
+        BLD.drawScene(); frameCount++;
       } else {
         ctx.fillStyle = '#06041a'; ctx.fillRect(0, 0, W, H); frameCount++;
       }
       for (const k in JP) delete JP[k];
       requestAnimationFrame(gameLoop);
     }
+
+
+
+    // ═══════════════════════════════════════════════════════
+    //  LEVEL BUILDER
+    // ═══════════════════════════════════════════════════════
+    const THEMES_PC={
+      highland:['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'],
+      volcanic:['#2a0e00','#3a1800','#6a2a00','#8a3c00','#aa5010'],
+      frozen:  ['#101a2a','#1a2e4a','#2a5080','#4a80bb','#6aaaf0'],
+      shadow:  ['#0a0018','#160028','#2a1050','#4a2080','#6a40a0'],
+    };
+    const THEMES_BG={
+      highland:[['#0d1b35','#1a3050'],true,true],
+      volcanic:[['#1a0600','#300e00'],false,true],
+      frozen:  [['#060c1a','#0e1e38'],true,true],
+      shadow:  [['#0a0014','#18002a'],true,false],
+    };
+    const BLD = {
+      levelData:null, tool:'platform', scrollX:0,
+      dragStart:null, isDragging:false, previewRect:null,
+      undoStack:[], SNAP:16, SIDEBAR:66, theme:'highland',
+
+      newLevel() {
+        this.undoStack=[];this.scrollX=0;this.theme='highland';
+        this.levelData={name:'CUSTOM LEVEL',width:3200,bgColors:['#0d1b35','#1a3050'],
+          skyStars:true,misty:true,platColors:[...THEMES_PC.highland],
+          accentColor:'#5a2080',accentColor2:'#d460ff',
+          platforms:[{x:0,y:450,w:3200,h:60}],
+          enemies:[],coins:[],qblocks:[],
+          goalX:3100,goalY:310,timePar:240,timeGold:180};
+        const n=document.getElementById('bl-name'),bw=document.getElementById('bl-width'),bt=document.getElementById('bl-theme');
+        if(n)n.value='CUSTOM LEVEL';if(bw)bw.value='3200';if(bt)bt.value='highland';
+        this.updateInfo();
+      },
+      setWidth(w){
+        if(!this.levelData)return;
+        this.levelData.width=Math.max(900,Math.min(8000,w));
+        this.levelData.platforms[0].w=this.levelData.width;
+      },
+      setTheme(t) {
+        if(!this.levelData)return;this.theme=t;
+        const[bg,stars,mist]=THEMES_BG[t]||THEMES_BG.highland;
+        this.levelData.bgColors=bg;this.levelData.skyStars=stars;this.levelData.misty=mist;
+        this.levelData.platColors=[...THEMES_PC[t]||THEMES_PC.highland];
+        const extras={highland:{accentColor:'#5a2080',accentColor2:'#d460ff'},volcanic:{accentColor:'#cc3300',accentColor2:'#ff6600'},frozen:{accentColor:'#4488cc',accentColor2:'#88ddff'},shadow:{accentColor:'#8800cc',accentColor2:'#cc44ff'}};
+        Object.assign(this.levelData,extras[t]||{});
+      },
+      snap(v){return Math.round(v/this.SNAP)*this.SNAP;},
+      canvasToWorld(cx,cy){return{x:this.snap(cx-this.SIDEBAR+this.scrollX),y:this.snap(cy)};},
+      saveState(){this.undoStack.push(JSON.stringify(this.levelData));if(this.undoStack.length>30)this.undoStack.shift();},
+      undo(){if(this.undoStack.length){this.levelData=JSON.parse(this.undoStack.pop());this.updateInfo();}},
+      deleteAt(wx,wy) {
+        const r=22,ld=this.levelData;
+        ld.coins=ld.coins.filter(c=>Math.abs(c.x-wx)>r||Math.abs(c.y-wy)>r);
+        ld.qblocks=ld.qblocks.filter(q=>Math.abs(q.x-wx)>r||Math.abs(q.y-wy)>r);
+        ld.enemies=ld.enemies.filter(e=>Math.abs(e.x-wx)>r||Math.abs(e.y-wy)>r);
+        ld.platforms=ld.platforms.filter((p,i)=>i===0||(wx<p.x||wx>p.x+p.w||wy<p.y||wy>p.y+p.h));
+      },
+      placeAt(cx,cy) {
+        const{x:wx,y:wy}=this.canvasToWorld(cx,cy);
+        if(!this.levelData||wx<0||wx>this.levelData.width||wy<0||wy>490)return;
+        this.saveState();
+        const eMap={enemy0:0,enemy1:3,enemy2:4,enemy3:5};
+        if(this.tool in eMap){const v=eMap[this.tool];this.levelData.enemies.push({x:wx,y:wy,v,hp:[3,0,0,4,4,5][v]||3});}
+        else if(this.tool==='coin')this.levelData.coins.push({x:wx,y:wy});
+        else if(this.tool==='qblock')this.levelData.qblocks.push({x:wx,y:wy});
+        else if(this.tool==='goal'){this.levelData.goalX=wx;this.levelData.goalY=wy-70;}
+        else if(this.tool==='delete'){this.deleteAt(wx,wy);}
+        this.updateInfo();
+      },
+      startDrag(cx,cy){if(this.tool==='platform'){const{x,y}=this.canvasToWorld(cx,cy);this.dragStart={x,y};this.isDragging=true;}},
+      updateDrag(cx,cy){
+        if(this.isDragging&&this.tool==='platform'){
+          const{x,y}=this.canvasToWorld(cx,cy),{x:sx,y:sy}=this.dragStart;
+          this.previewRect={x:Math.min(sx,x),y:Math.min(sy,y),w:Math.max(16,Math.abs(x-sx)),h:Math.max(8,Math.abs(y-sy))};
+        }
+      },
+      endDrag(cx,cy) {
+        if(this.isDragging&&this.tool==='platform'&&this.dragStart){
+          const{x,y}=this.canvasToWorld(cx,cy),{x:sx,y:sy}=this.dragStart;
+          const rx=Math.min(sx,x),ry=Math.min(sy,y),rw=Math.max(16,Math.abs(x-sx)),rh=Math.max(8,Math.abs(y-sy));
+          if(rw>=16){this.saveState();this.levelData.platforms.push({x:rx,y:ry,w:rw,h:rh});}
+          this.isDragging=false;this.dragStart=null;this.previewRect=null;this.updateInfo();
+        }
+      },
+      saveLevel() {
+        if(!this.levelData)return;
+        const slot=parseInt(document.getElementById('bl-slot').value)||1;
+        try{localStorage.setItem('pogl_custom_'+slot,JSON.stringify(this.levelData));this.showInfo('SAVED TO SLOT '+slot);}
+        catch(e){this.showInfo('SAVE FAILED');}
+      },
+      loadLevel() {
+        const slot=parseInt(document.getElementById('bl-slot').value)||1;
+        try{const d=localStorage.getItem('pogl_custom_'+slot);
+          if(d){this.levelData=JSON.parse(d);const n=document.getElementById('bl-name'),bw=document.getElementById('bl-width');
+            if(n)n.value=this.levelData.name||'';if(bw)bw.value=this.levelData.width||3200;
+            this.showInfo('LOADED SLOT '+slot);}
+          else this.showInfo('SLOT '+slot+' EMPTY');}
+        catch(e){this.showInfo('LOAD FAILED');}
+      },
+      testLevel() {
+        if(!this.levelData)return;
+        const ld=JSON.parse(JSON.stringify(this.levelData));
+        ld.qblocks=(ld.qblocks||[]).map(b=>({...b,hit:false,bumpTimer:0}));
+        WORLDS[98]=WORLDS[98]||{name:'TEST',color:'#888',borderColor:'#aaa',emoji:'🔧',desc:'',levels:[]};
+        WORLDS[98].levels[0]=ld;
+        document.getElementById('builder-sidebar').style.display='none';
+        document.getElementById('builder-bar').style.display='none';
+        document.getElementById('hud').style.display='';
+        score=0;coins=0;levelTime=0;currentWorld=99;currentLevel=1;
+        GS='playing';initLevel(1);startMusic();resumeAC();
+      },
+      updateInfo() {
+        const el=document.getElementById('builder-info');if(!el||!this.levelData)return;
+        const ld=this.levelData;
+        el.textContent=`P:${ld.platforms.length} E:${ld.enemies.length} C:${ld.coins.length} Q:${ld.qblocks.length} | ←→ SCROLL | Z UNDO | RMB DELETE`;
+      },
+      showInfo(msg) {
+        const el=document.getElementById('builder-info');if(!el)return;
+        el.textContent=msg;clearTimeout(this._t);this._t=setTimeout(()=>this.updateInfo(),2000);
+      },
+      drawScene() {
+        const ld=this.levelData;if(!ld)return;
+        const SB=this.SIDEBAR;
+        const grad=ctx.createLinearGradient(0,0,0,H);
+        grad.addColorStop(0,(ld.bgColors||['#0d1b35','#1a3050'])[0]);
+        grad.addColorStop(1,(ld.bgColors||['#0d1b35','#1a3050'])[1]);
+        ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+        ctx.save();ctx.translate(SB-this.scrollX,0);
+        // Grid
+        ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+        const gx0=Math.floor(this.scrollX/32)*32;
+        for(let gx=gx0;gx<this.scrollX+W;gx+=32){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
+        for(let gy=0;gy<H;gy+=32){ctx.beginPath();ctx.moveTo(this.scrollX,gy);ctx.lineTo(this.scrollX+W,gy);ctx.stroke();}
+        // Platforms
+        const platC=ld.platColors||['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'];
+        for(const p of ld.platforms){
+          ctx.fillStyle=p.h>30?platC[0]:platC[1];ctx.fillRect(p.x,p.y,p.w,p.h);
+          ctx.fillStyle=platC[2];ctx.fillRect(p.x,p.y,p.w,Math.min(5,p.h));
+          ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(p.x,p.y,p.w,1);
+        }
+        // Goal
+        ctx.globalAlpha=.6;ctx.fillStyle='#f5c518';ctx.fillRect(ld.goalX,ld.goalY,6,140);
+        ctx.font='8px "Press Start 2P"';ctx.fillStyle='#f5c518';ctx.textAlign='center';
+        ctx.fillText('GOAL',ld.goalX+3,ld.goalY-5);ctx.textAlign='left';ctx.globalAlpha=1;
+        // Enemies
+        for(const e of ld.enemies)drawDrum32(ctx,e.x,e.y,Math.min(e.v||0,5),e.hp||3,e.hp||3,0);
+        // Coins
+        for(const c of ld.coins){
+          ctx.fillStyle='#c8a820';ctx.beginPath();ctx.arc(c.x+8,c.y+8,8,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle='#f5d640';ctx.beginPath();ctx.arc(c.x+8,c.y+8,6,0,Math.PI*2);ctx.fill();
+        }
+        // QBlocks
+        for(const q of ld.qblocks){
+          ctx.fillStyle='#c8a820';ctx.fillRect(q.x,q.y,28,28);
+          ctx.fillStyle='#f5d640';ctx.fillRect(q.x+2,q.y+2,24,24);
+          ctx.fillStyle='#8b5800';ctx.font='bold 16px "Press Start 2P"';ctx.textAlign='center';
+          ctx.fillText('?',q.x+14,q.y+20);ctx.textAlign='left';
+        }
+        // Platform drag preview
+        if(this.previewRect){const pr=this.previewRect;
+          ctx.globalAlpha=.4;ctx.fillStyle='#6eb4ff';ctx.fillRect(pr.x,pr.y,pr.w,pr.h);
+          ctx.globalAlpha=.9;ctx.strokeStyle='#6eb4ff';ctx.lineWidth=2;ctx.strokeRect(pr.x,pr.y,pr.w,pr.h);
+          ctx.globalAlpha=1;ctx.lineWidth=1;}
+        ctx.restore();
+        // Sidebar cover
+        ctx.fillStyle='rgba(4,4,16,0.96)';ctx.fillRect(0,0,SB,H);
+        ctx.strokeStyle='#2a2a4a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(SB,0);ctx.lineTo(SB,H);ctx.stroke();ctx.lineWidth=1;
+        // Scroll bar
+        const lw=ld.width,vw=W-SB,tw=Math.max(30,vw/lw*vw);
+        const tx2=SB+(this.scrollX/(lw-vw))*(vw-tw);
+        ctx.fillStyle='#111';ctx.fillRect(SB,H-4,vw,4);
+        ctx.fillStyle='#3a3a6a';ctx.fillRect(isNaN(tx2)?SB:tx2,H-4,tw,4);
+        // End marker
+        const endX=SB+ld.width-this.scrollX;
+        if(endX<W){ctx.globalAlpha=.4;ctx.fillStyle='#e74c3c';ctx.fillRect(endX,0,2,H);ctx.globalAlpha=1;
+          ctx.font='7px "Press Start 2P"';ctx.fillStyle='#e74c3c';ctx.fillText('END',endX+4,18);}
+        // Info
+        ctx.font='6px "Press Start 2P"';ctx.fillStyle='#3a3a5a';ctx.textAlign='right';
+        ctx.fillText('TOOL:'+BLD.tool.toUpperCase()+'  scroll:'+Math.round(BLD.scrollX),W-4,H-8);
+        ctx.textAlign='left';
+      },
+    };
+
+    // Canvas mouse events for builder
+    canvas.addEventListener('mousedown',e=>{
+      if(GS!=='builder')return;
+      const rect=canvas.getBoundingClientRect();
+      const cx=(e.clientX-rect.left)*(canvas.width/rect.width);
+      const cy=(e.clientY-rect.top)*(canvas.height/rect.height);
+      if(cx<BLD.SIDEBAR)return;
+      if(BLD.tool==='platform')BLD.startDrag(cx,cy);else BLD.placeAt(cx,cy);
+    });
+    canvas.addEventListener('mousemove',e=>{
+      if(GS!=='builder'||!BLD.isDragging)return;
+      const rect=canvas.getBoundingClientRect();
+      BLD.updateDrag((e.clientX-rect.left)*(canvas.width/rect.width),(e.clientY-rect.top)*(canvas.height/rect.height));
+    });
+    canvas.addEventListener('mouseup',e=>{
+      if(GS!=='builder')return;
+      const rect=canvas.getBoundingClientRect();
+      BLD.endDrag((e.clientX-rect.left)*(canvas.width/rect.width),(e.clientY-rect.top)*(canvas.height/rect.height));
+    });
+    canvas.addEventListener('contextmenu',e=>{
+      if(GS!=='builder')return;e.preventDefault();
+      const rect=canvas.getBoundingClientRect();
+      const cx=(e.clientX-rect.left)*(canvas.width/rect.width);
+      const cy=(e.clientY-rect.top)*(canvas.height/rect.height);
+      if(cx>=BLD.SIDEBAR){BLD.saveState();const{x,y}=BLD.canvasToWorld(cx,cy);BLD.deleteAt(x,y);BLD.updateInfo();}
+    });
+    canvas.addEventListener('wheel',e=>{
+      if(GS!=='builder')return;e.preventDefault();
+      BLD.scrollX=Math.max(0,Math.min((BLD.levelData?BLD.levelData.width-(W-BLD.SIDEBAR):0),BLD.scrollX+e.deltaX+e.deltaY*0.5));
+    },{passive:false});
+
+    function updateHUD() {
+      if (!player) return;
+      const p = player; const pct = Math.max(0, p.hp / p.maxHp * 100);
+      document.getElementById('hp-bar').style.width = pct + '%';
+      document.getElementById('hp-bar').style.background = pct > 50 ? 'linear-gradient(90deg,#1a8a00,#4abf20)' : pct > 25 ? 'linear-gradient(90deg,#8a8000,#c8c020)' : 'linear-gradient(90deg,#8b0000,#e74c3c)';
+      document.getElementById('hp-txt').textContent = `${Math.max(0, p.hp)}/${p.maxHp}`;
+      document.getElementById('score-txt').textContent = score;
+      document.getElementById('coin-txt').textContent = coins;
+      document.getElementById('time-txt').textContent = formatTime(levelTime);
+
+      const abls = [['shoot', 'asl-shoot', 'cd-shoot'], ['skirl', 'asl-skirl', 'cd-skirl'], ['charge', 'asl-charge', 'cd-charge'], ['drone', 'asl-drone', 'cd-drone'], ['shield', 'asl-shield', 'cd-shield'], ['heal', 'asl-heal', 'cd-heal']];
+      for (const [k, sid, cid] of abls) {
+        const cd = p.cooldowns[k], max = p.CD_MAX[k];
+        const el = document.getElementById(sid); const fill = document.getElementById(cid);
+        fill.style.height = cd > 0 ? Math.floor(cd / max * 100) + '%' : '0%'; el.classList.toggle('rdy', cd <= 0);
+      }
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, W, H);
+      if (GS === 'playing') {
+        updatePlayer();
+        if (GS !== 'playing') { requestAnimationFrame(gameLoop); return; }
+        updateProjectiles(); updatePowerups(); updateEnemies(); updateEnemyProjectiles(); updateCollectibles();
+        particles = particles.filter(p => { p.x += p.vx; p.y += p.vy; p.vy += p.grav; p.life--; return p.life > 0; });
+        updateCamera(); levelTime++;
+        if (player.hp <= 0 && GS === 'playing') {
+          GS = 'gameover'; stopMusic();
+          document.getElementById('go-score').textContent = score; document.getElementById('s-gameover').classList.add('active');
+        }
+        checkGoal(); updateHUD(); frameCount++; drawScene();
+      } else if (GS === 'paused') {
+        drawScene();
+      } else if (GS === 'builder') {
+        BLD.drawScene(); frameCount++;
+      } else {
+        ctx.fillStyle = '#06041a'; ctx.fillRect(0, 0, W, H); frameCount++;
+      }
+      for (const k in JP) delete JP[k];
+      requestAnimationFrame(gameLoop);
+    }
+
 
     const GAME_NAT_W = 906, GAME_NAT_H = 561, wrap = document.getElementById('wrap');
     function scaleWrap() {
@@ -2149,13 +2804,40 @@
         const release = e => { e.preventDefault(); K[key] = false; el.classList.remove('active'); };
         el.addEventListener('touchend', release, { passive: false }); el.addEventListener('touchcancel', release, { passive: false });
       }
-      tcBtn('tc-mv-left', 'ArrowLeft'); tcBtn('tc-mv-right', 'ArrowRight'); tcBtn('tc-jump', 'z'); tcBtn('tc-shoot', 'q');
-      tcBtn('tc-skirl', 'w'); tcBtn('tc-charge', 'e'); tcBtn('tc-drone', 'r'); tcBtn('tc-shield', 'a'); tcBtn('tc-heal', 's'); tcBtn('tc-pause-btn', 'Escape');
+      tcBtn('tc-mv-left', 'ArrowLeft'); tcBtn('tc-mv-right', 'ArrowRight'); tcBtn('tc-jump', KB.jump); tcBtn('tc-shoot', KB.shoot);
+      tcBtn('tc-skirl', KB.skirl); tcBtn('tc-charge', KB.charge); tcBtn('tc-drone', KB.drone); tcBtn('tc-shield', KB.shield); tcBtn('tc-heal', KB.heal); tcBtn('tc-pause-btn', 'Escape');
       const htp = document.querySelector('#s-howto div[style]');
       if (htp) htp.innerHTML = htp.innerHTML.replace('← → MOVE', '◀ ▶ MOVE (left side)').replace('Z / ↑</span> JUMP', 'JUMP</span> button (right)').replace('ESC/P</span> PAUSE', '⏸</span> PAUSE (top-right)');
     }
 
-    initAudio(); UI.buildLevelGrid(); gameLoop();
+    window.addEventListener('keydown', e => {
+      if (GS === 'builder') {
+        if (e.key === 'ArrowLeft')  { BLD.scrollX = Math.max(0, BLD.scrollX - 60); e.preventDefault(); return; }
+        if (e.key === 'ArrowRight') { BLD.scrollX = Math.min((BLD.levelData ? BLD.levelData.width - 834 : 0), BLD.scrollX + 60); e.preventDefault(); return; }
+        if (e.key === 'Delete' || e.key === 'Backspace') { UI.setTool('delete'); e.preventDefault(); return; }
+        if (e.key === 'Escape') { UI.exitBuilder(); e.preventDefault(); return; }
+        if (e.key === 'z' || e.key === 'Z') { BLD.undo(); e.preventDefault(); return; }
+        return;
+      }
+      if (_bindingAction) {
+        e.preventDefault();
+        if (e.key !== 'Escape') {
+          KB[_bindingAction] = e.key;
+          try { localStorage.setItem('pogl_kb', JSON.stringify(KB)); } catch(er) {}
+          buildSettingsUI(); updateHUDKeys();
+        }
+        const prev = _bindingAction; _bindingAction = null;
+        const btn = document.getElementById('bind-btn-' + prev);
+        if (btn) { btn.textContent = formatKeyName(KB[prev]); btn.classList.remove('capturing'); }
+        return;
+      }
+      if (!K[e.key]) JP[e.key] = true;
+      K[e.key] = true;
+      if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
+      if (e.key === KB.mute || e.key === (KB.mute||'m').toUpperCase()) toggleMute();
+    });
+    window.addEventListener('keyup', e => { K[e.key] = false; });
+        initAudio(); UI.buildWorldGrid(); UI.buildLevelGrid(); updateHUDKeys(); gameLoop();
   </script>
 </body>
 
