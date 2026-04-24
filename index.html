@@ -647,7 +647,7 @@
         </div>
         <span id="hp-txt">5/5</span>
         &nbsp;|&nbsp;
-        <span class="lbl">LVL</span><span id="lvl-txt" style="color:#4abf3f">1</span>
+        <span class="lbl">LVL</span><span id="lvl-txt" style="color:#4abf3f">1</span><span id="gp-indicator" style="display:none;font-size:7px;color:#6eb4ff;margin-left:6px;font-family:'Press Start 2P',monospace;vertical-align:middle;" title="">🎮</span>
         &nbsp;|&nbsp;
         <span class="lbl">SCORE</span><span id="score-txt" style="color:#f5c518">0</span>
       </div>
@@ -950,7 +950,70 @@
     // ═══════════════════════════════════════════════════════
     //  KEY BINDING SYSTEM
     // ═══════════════════════════════════════════════════════
-    const DEFAULT_KB = {
+    // ═══════════════════════════════════════════════════════
+    //  GAMEPAD (DualSense / Standard)
+    // ═══════════════════════════════════════════════════════
+    // DualSense standard mapping:
+    // btn 0=Cross(jump) 1=Circle(shoot) 2=Square(skirl) 3=Triangle(charge)
+    // btn 4=L1(shield)  5=R1(drone)    6=L2(heal)       7=R2(alt shoot)
+    // btn 8=Create      9=Options(pause)
+    // btn 12=DUp  13=DDown  14=DLeft  15=DRight
+    // axes 0=LS-X  1=LS-Y  2=RS-X  3=RS-Y
+    const GP_MAP = {
+      left:   { btns:[14],     axis:{i:0,dir:-1} },
+      right:  { btns:[15],     axis:{i:0,dir: 1} },
+      jump:   { btns:[0],      axis:null },   // Cross only; D-pad handled by isGPNavDir
+      shoot:  { btns:[1,7],    axis:null },
+      skirl:  { btns:[2],      axis:null },
+      charge: { btns:[3],      axis:null },
+      shield: { btns:[4],      axis:null },
+      drone:  { btns:[5],      axis:null },
+      heal:   { btns:[6],      axis:null },
+      pause:  { btns:[9],      axis:null },
+      mute:   { btns:[8],      axis:null },
+    };
+    const GP_AXIS_DEAD = 0.25;   // deadzone
+    let gpConnected = false;     // true when a gamepad is plugged in
+    let gpActive    = false;     // true when gamepad was last-used input
+    let GPH = {};                // held  (like K)
+    let GPP = {};                // pressed this frame (like JP)
+    let _gpPrev = {};            // previous frame held state
+
+    function pollGamepad() {
+      let pads = [];
+      try { pads = navigator.getGamepads ? navigator.getGamepads() : []; } catch(e) { return; }
+      const pad  = Array.from(pads).find(p => p && p.connected);
+      gpConnected = !!pad;
+      const newHeld = {};
+      if (pad) {
+        for (const [action, map] of Object.entries(GP_MAP)) {
+          let held = map.btns.some(b => pad.buttons[b] && pad.buttons[b].pressed);
+          if (!held && map.axis) {
+            const v = pad.axes[map.axis.i] || 0;
+            held = (map.axis.dir < 0 ? v < -GP_AXIS_DEAD : v > GP_AXIS_DEAD);
+          }
+          newHeld[action] = held;
+        }
+        // detect any gamepad activity → switch to gamepad mode
+        if (Object.values(newHeld).some(Boolean)) gpActive = true;
+      }
+      // detect keyboard activity → switch back to keyboard mode
+      if (Object.values(K).some(Boolean)) gpActive = false;
+
+      // Compute presses (newly held this frame)
+      for (const a of Object.keys(GP_MAP)) {
+        GPP[a] = newHeld[a] && !_gpPrev[a];
+      }
+      _gpPrev = {...newHeld};
+      GPH = newHeld;
+    }
+
+    const BUTTON_ICONS = {
+      left:'⬅', right:'➡', jump:'✕', shoot:'○', skirl:'□', charge:'△',
+      shield:'L1', drone:'R1', heal:'L2', pause:'⋯', mute:'⬛',
+    };
+
+        const DEFAULT_KB = {
       left:'ArrowLeft', right:'ArrowRight',
       jump:'z', jump2:'ArrowUp',
       shoot:'q', skirl:'w', charge:'e', drone:'r',
@@ -966,10 +1029,12 @@
     // [input listeners moved to bottom]
 
     function kHeld(action) {
+      if (gpActive && GPH[action]) return true;
       const k = KB[action]||''; return K[k]||K[k.toLowerCase()]||K[k.toUpperCase()]||
         (action==='jump'&&(K[KB.jump2]||K[(KB.jump2||'').toLowerCase()]||K[(KB.jump2||'').toUpperCase()]));
     }
     function kPress(action) {
+      if (gpActive && GPP[action]) return true;
       const k = KB[action]||''; return JP[k]||JP[k.toLowerCase()]||JP[k.toUpperCase()]||
         (action==='jump'&&(JP[KB.jump2]||JP[(KB.jump2||'').toLowerCase()]||JP[(KB.jump2||'').toUpperCase()]))||
         (action==='pause'&&(JP[KB.pause2]||JP[(KB.pause2||'p').toLowerCase()]||JP[(KB.pause2||'p').toUpperCase()]));
@@ -983,8 +1048,20 @@
       const actions=[['left','MOVE LEFT'],['right','MOVE RIGHT'],['jump','JUMP'],['shoot','SHOOT NOTES'],
         ['skirl','SKIRL BLAST'],['charge','HIGHLAND CHARGE'],['drone','DRONE WAVE'],
         ['shield','THISTLE SHIELD'],['heal','HEAL HP'],['pause','PAUSE'],['mute','MUTE']];
-      ct.innerHTML=actions.map(([a,l])=>`<div class="bind-row"><span class="bind-label">${l}</span>
-        <button class="bind-key-btn" id="bind-btn-${a}" onclick="startBindCapture('${a}')">${formatKeyName(KB[a])}</button></div>`).join('');
+      const gpSection = gpConnected ? `
+        <div style="margin:10px 0 6px;font-family:'Press Start 2P',monospace;font-size:6px;color:#6eb4ff;">
+          🎮 DUALSENSE DETECTED — BUTTON LAYOUT:
+        </div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:5.5px;color:#888;line-height:2.2;column-count:2;column-gap:10px;">
+          ✕ CROSS — JUMP<br>○ CIRCLE — SHOOT<br>□ SQUARE — SKIRL<br>△ TRIANGLE — CHARGE<br>
+          L1 — SHIELD<br>R1 — DRONE<br>L2 — HEAL<br>⋯ OPTIONS — PAUSE<br>
+          D-PAD / L-STICK — MOVE
+        </div>` : `<div style="font-family:'Press Start 2P',monospace;font-size:5.5px;color:#444;margin:6px 0;">
+          NO CONTROLLER DETECTED
+        </div>`;
+      ct.innerHTML = gpSection + '<div style="margin-top:8px;border-top:1px solid #1a1a2a;padding-top:8px;">' +
+        actions.map(([a,l])=>`<div class="bind-row"><span class="bind-label">${l}</span>
+        <button class="bind-key-btn" id="bind-btn-${a}" onclick="startBindCapture('${a}')">${formatKeyName(KB[a])}</button></div>`).join('') + '</div>';
     }
     function startBindCapture(action) {
       _bindingAction=action;
@@ -993,7 +1070,10 @@
     }
     function updateHUDKeys() {
       const m={shoot:'asl-shoot',skirl:'asl-skirl',charge:'asl-charge',drone:'asl-drone',shield:'asl-shield',heal:'asl-heal'};
-      for(const[a,id]of Object.entries(m)){const el=document.querySelector('#'+id+' .akey');if(el)el.textContent=(KB[a]||'?').toUpperCase().substring(0,3);}
+      for(const[a,id]of Object.entries(m)){
+        const el=document.querySelector('#'+id+' .akey');
+        if(el) el.textContent = gpActive ? (BUTTON_ICONS[a]||'?') : (KB[a]||'?').toUpperCase().substring(0,3);
+      }
     }
 
     // ═══════════════════════════════════════════════════════
@@ -1692,6 +1772,7 @@
         if(id==='s-levelselect')this.buildLevelGrid();
         if(id==='s-worldselect')this.buildWorldGrid();
         if(id==='s-settings')buildSettingsUI();
+        gpMenuFocus = 0; gpClearFocus();
       },
       buildWorldGrid() {
         const grid=document.getElementById('world-grid');if(!grid)return;grid.innerHTML='';
@@ -1763,7 +1844,7 @@
         document.getElementById('hud').style.display='none';
         document.getElementById('builder-sidebar').style.display='flex';
         document.getElementById('builder-bar').style.display='flex';
-        GS='builder';
+        GS='builder'; gpBuilderFocus=0; gpClearFocus();
         if(!BLD.levelData)BLD.newLevel();
         BLD.updateInfo();
       },
@@ -2505,6 +2586,7 @@
 
     function gameLoop() {
       ctx.clearRect(0, 0, W, H);
+      pollGamepad();
       if (GS === 'playing') {
         updatePlayer();
         if (GS !== 'playing') { requestAnimationFrame(gameLoop); return; }
@@ -2515,12 +2597,21 @@
           GS = 'gameover'; stopMusic();
           document.getElementById('go-score').textContent = score; document.getElementById('s-gameover').classList.add('active');
         }
-        checkGoal(); updateHUD(); frameCount++; drawScene();
+        checkGoal(); updateHUD(); frameCount++;
+        if (frameCount % 30 === 0) {
+          updateHUDKeys();
+          const gpEl = document.getElementById('gp-indicator');
+          if (gpEl) gpEl.style.display = gpConnected ? '' : 'none';
+        }
+        drawScene();
       } else if (GS === 'paused') {
+        handleMenuGamepad();
         drawScene();
       } else if (GS === 'builder') {
+        handleBuilderGamepad();
         BLD.drawScene(); frameCount++;
       } else {
+        handleMenuGamepad();
         ctx.fillStyle = '#06041a'; ctx.fillRect(0, 0, W, H); frameCount++;
       }
       for (const k in JP) delete JP[k];
@@ -2762,6 +2853,7 @@
 
     function gameLoop() {
       ctx.clearRect(0, 0, W, H);
+      pollGamepad();
       if (GS === 'playing') {
         updatePlayer();
         if (GS !== 'playing') { requestAnimationFrame(gameLoop); return; }
@@ -2772,12 +2864,21 @@
           GS = 'gameover'; stopMusic();
           document.getElementById('go-score').textContent = score; document.getElementById('s-gameover').classList.add('active');
         }
-        checkGoal(); updateHUD(); frameCount++; drawScene();
+        checkGoal(); updateHUD(); frameCount++;
+        if (frameCount % 30 === 0) {
+          updateHUDKeys();
+          const gpEl = document.getElementById('gp-indicator');
+          if (gpEl) gpEl.style.display = gpConnected ? '' : 'none';
+        }
+        drawScene();
       } else if (GS === 'paused') {
+        handleMenuGamepad();
         drawScene();
       } else if (GS === 'builder') {
+        handleBuilderGamepad();
         BLD.drawScene(); frameCount++;
       } else {
+        handleMenuGamepad();
         ctx.fillStyle = '#06041a'; ctx.fillRect(0, 0, W, H); frameCount++;
       }
       for (const k in JP) delete JP[k];
@@ -2837,7 +2938,167 @@
       if (e.key === KB.mute || e.key === (KB.mute||'m').toUpperCase()) toggleMute();
     });
     window.addEventListener('keyup', e => { K[e.key] = false; });
-        initAudio(); UI.buildWorldGrid(); UI.buildLevelGrid(); updateHUDKeys(); gameLoop();
+    
+    // ═══════════════════════════════════════════════════════
+    //  GAMEPAD MENU NAVIGATION
+    // ═══════════════════════════════════════════════════════
+    let gpMenuFocus = 0;          // index of focused item in current menu
+    let gpMenuCooldown = 0;       // frames before next navigation step
+    const GP_NAV_DELAY  = 18;     // frames between nav steps when held
+    const GP_NAV_FIRST  = 24;     // delay before first repeat
+
+    // Returns all currently focusable elements for the active screen/state
+    function getMenuItems() {
+      if (GS === 'playing' || GS === 'builder') return [];
+      // Find the active screen
+      const active = document.querySelector('.screen.active');
+      if (!active) return [];
+      const sid = active.id;
+
+      if (sid === 's-worldselect') {
+        return Array.from(document.querySelectorAll('.world-card:not(.locked)'));
+      }
+      if (sid === 's-levelselect') {
+        return Array.from(document.querySelectorAll('.lvl-btn:not(.locked)'));
+      }
+      if (sid === 's-settings') {
+        return Array.from(document.querySelectorAll('.bind-key-btn, .btn'));
+      }
+      // Default: all .btn elements on the active screen
+      return Array.from(active.querySelectorAll('.btn'));
+    }
+
+    function gpSetFocus(items, idx) {
+      items.forEach((el, i) => {
+        el.style.outline = i === idx ? '2px solid #6eb4ff' : '';
+        el.style.boxShadow = i === idx ? '0 0 10px #6eb4ff88' : '';
+      });
+    }
+
+    function gpClearFocus() {
+      document.querySelectorAll('.btn, .world-card, .lvl-btn, .bind-key-btn').forEach(el => {
+        el.style.outline = ''; el.style.boxShadow = '';
+      });
+    }
+
+    // Determine if a nav direction should wrap the column layout
+    function gpNavCols(sid) {
+      if (sid === 's-worldselect') return 2;  // 2-column world grid
+      if (sid === 's-levelselect') return 3;  // 3-column level grid
+      return 1;
+    }
+
+    function handleMenuGamepad() {
+      if (!gpActive || gpMenuCooldown > 0) { gpMenuCooldown = Math.max(0, gpMenuCooldown - 1); return; }
+
+      const items = getMenuItems();
+      if (!items.length) return;
+
+      const active = document.querySelector('.screen.active');
+      const sid = active ? active.id : '';
+      const cols = gpNavCols(sid);
+
+      // Clamp focus to valid range
+      gpMenuFocus = Math.max(0, Math.min(items.length - 1, gpMenuFocus));
+      gpSetFocus(items, gpMenuFocus);
+
+      // D-pad / left-stick navigation (fully independent of face buttons)
+      const goUp    = isGPNavDir('up');
+      const goDown  = isGPNavDir('down');
+      const goLeft  = isGPNavDir('left');
+      const goRight = isGPNavDir('right');
+
+      let moved = false;
+      if (goUp    && gpMenuFocus >= cols)           { gpMenuFocus -= cols; moved = true; }
+      if (goDown  && gpMenuFocus + cols < items.length) { gpMenuFocus += cols; moved = true; }
+      if (goLeft  && gpMenuFocus % cols !== 0)      { gpMenuFocus--;       moved = true; }
+      if (goRight && gpMenuFocus % cols !== cols-1 && gpMenuFocus < items.length-1) { gpMenuFocus++; moved = true; }
+
+      if (moved) {
+        gpMenuFocus = Math.max(0, Math.min(items.length - 1, gpMenuFocus));
+        gpSetFocus(items, gpMenuFocus);
+        gpMenuCooldown = GP_NAV_DELAY;
+        return;
+      }
+
+      // Cross (✕) = confirm / click focused item
+      if (GPP.jump) {
+        items[gpMenuFocus].click();
+        gpMenuFocus = 0;
+        gpMenuCooldown = GP_NAV_FIRST;
+        return;
+      }
+
+      // Circle (○) = back / cancel
+      if (GPP.shoot) {
+        const backBtn = active && active.querySelector('.btn.red, button.btn[onclick*="backToTitle"], button.btn[onclick*="showScreen(\'s-title"]');
+        if (backBtn) backBtn.click();
+        gpMenuFocus = 0;
+        gpMenuCooldown = GP_NAV_FIRST;
+        return;
+      }
+
+      // Options button = pause / back from pause
+      if (GPP.pause) {
+        if (GS === 'paused') { UI.resume(); return; }
+      }
+    }
+
+    // Check if a navigation direction is active this frame (D-pad or stick)
+    function isGPNavDir(dir) {
+      try {
+        const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        const pad  = Array.from(pads).find(p => p && p.connected);
+        if (!pad) return false;
+        if (dir === 'up')    return (pad.buttons[12] && pad.buttons[12].pressed) || (pad.axes[1] || 0) < -GP_AXIS_DEAD;
+        if (dir === 'down')  return (pad.buttons[13] && pad.buttons[13].pressed) || (pad.axes[1] || 0) >  GP_AXIS_DEAD;
+        if (dir === 'left')  return (pad.buttons[14] && pad.buttons[14].pressed) || (pad.axes[0] || 0) < -GP_AXIS_DEAD;
+        if (dir === 'right') return (pad.buttons[15] && pad.buttons[15].pressed) || (pad.axes[0] || 0) >  GP_AXIS_DEAD;
+      } catch(e) {}
+      return false;
+    }
+
+    // Builder-specific gamepad controls
+    const BL_TOOLS = ['platform','enemy0','enemy1','enemy2','enemy3','coin','qblock','goal','delete'];
+    let gpBuilderFocus = 0;
+
+    function handleBuilderGamepad() {
+      if (!gpActive) return;
+
+      // L1/R1 cycle through tools
+      if (GPP.shield) { gpBuilderFocus = (gpBuilderFocus - 1 + BL_TOOLS.length) % BL_TOOLS.length; UI.setTool(BL_TOOLS[gpBuilderFocus]); }
+      if (GPP.drone)  { gpBuilderFocus = (gpBuilderFocus + 1) % BL_TOOLS.length; UI.setTool(BL_TOOLS[gpBuilderFocus]); }
+
+      // D-pad left/right scrolls the level
+      if (gpMenuCooldown <= 0) {
+        if (isGPNavDir('left'))  { BLD.scrollX = Math.max(0, BLD.scrollX - 80); gpMenuCooldown = 6; }
+        if (isGPNavDir('right')) { BLD.scrollX = Math.min(BLD.levelData ? BLD.levelData.width - (W - BLD.SIDEBAR) : 0, BLD.scrollX + 80); gpMenuCooldown = 6; }
+        gpMenuCooldown = Math.max(0, gpMenuCooldown - 1);
+      } else {
+        gpMenuCooldown = Math.max(0, gpMenuCooldown - 1);
+      }
+
+      // Triangle = test level, Options = exit builder
+      if (GPP.charge) BLD.testLevel();
+      if (GPP.pause)  UI.exitBuilder();
+      // Square = save, Cross = new
+      if (GPP.skirl)  BLD.saveLevel();
+    }
+
+    // Gamepad connection events
+    window.addEventListener('gamepadconnected', e => {
+      gpConnected = true;
+      console.log('Gamepad connected:', e.gamepad.id);
+      const el = document.getElementById('gp-indicator');
+      if (el) { el.style.display = ''; el.title = e.gamepad.id; }
+    });
+    window.addEventListener('gamepaddisconnected', e => {
+      gpConnected = false; gpActive = false;
+      const el = document.getElementById('gp-indicator');
+      if (el) el.style.display = 'none';
+    });
+
+    initAudio(); UI.buildWorldGrid(); UI.buildLevelGrid(); updateHUDKeys(); gameLoop();
   </script>
 </body>
 
