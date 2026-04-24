@@ -1000,6 +1000,10 @@
       // detect keyboard activity → switch back to keyboard mode
       if (Object.values(K).some(Boolean)) gpActive = false;
 
+      // Show/hide touch controls based on active input
+      const tcEl = document.getElementById('touch-ctrl');
+      if (tcEl && isMobile) tcEl.style.display = gpActive ? 'none' : 'block';
+
       // Compute presses (newly held this frame)
       for (const a of Object.keys(GP_MAP)) {
         GPP[a] = newHeld[a] && !_gpPrev[a];
@@ -2799,6 +2803,7 @@
         ctx.font='6px "Press Start 2P"';ctx.fillStyle='#3a3a5a';ctx.textAlign='right';
         ctx.fillText('TOOL:'+BLD.tool.toUpperCase()+'  scroll:'+Math.round(BLD.scrollX),W-4,H-8);
         ctx.textAlign='left';
+        drawBuilderCursor();
       },
     };
 
@@ -3062,27 +3067,98 @@
     const BL_TOOLS = ['platform','enemy0','enemy1','enemy2','enemy3','coin','qblock','goal','delete'];
     let gpBuilderFocus = 0;
 
-    function handleBuilderGamepad() {
-      if (!gpActive) return;
+    // Builder cursor position (canvas coords)
+    let gpCursorX = 300, gpCursorY = 250;
+    const GP_CURSOR_SPEED = 6;   // pixels per frame at full stick deflection
+    const GP_SCROLL_SPEED = 8;   // pixels per frame at full stick deflection
 
-      // L1/R1 cycle through tools
+    function handleBuilderGamepad() {
+      if (!gpActive || !BLD.levelData) return;
+
+      let pad = null;
+      try {
+        const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+        pad = Array.from(pads).find(p => p && p.connected);
+      } catch(e) {}
+      if (!pad) return;
+
+      // ── Left stick: scroll the level left/right ──────────
+      const lx = pad.axes[0] || 0;
+      const ly = pad.axes[1] || 0;
+      if (Math.abs(lx) > GP_AXIS_DEAD) {
+        const maxScroll = Math.max(0, BLD.levelData.width - (W - BLD.SIDEBAR));
+        BLD.scrollX = Math.max(0, Math.min(maxScroll, BLD.scrollX + lx * GP_SCROLL_SPEED));
+      }
+
+      // ── Right stick: move the cursor ─────────────────────
+      const rx = pad.axes[2] || 0;
+      const ry = pad.axes[3] || 0;
+      if (Math.abs(rx) > GP_AXIS_DEAD) gpCursorX = Math.max(BLD.SIDEBAR + 4, Math.min(W - 4, gpCursorX + rx * GP_CURSOR_SPEED));
+      if (Math.abs(ry) > GP_AXIS_DEAD) gpCursorY = Math.max(4, Math.min(H - 4,  gpCursorY + ry * GP_CURSOR_SPEED));
+
+      // ── D-pad: scroll faster (held) ───────────────────────
+      if (pad.buttons[14] && pad.buttons[14].pressed) BLD.scrollX = Math.max(0, BLD.scrollX - 20);
+      if (pad.buttons[15] && pad.buttons[15].pressed) BLD.scrollX = Math.min(Math.max(0, BLD.levelData.width - (W - BLD.SIDEBAR)), BLD.scrollX + 20);
+
+      // ── L1/R1: cycle tools ────────────────────────────────
       if (GPP.shield) { gpBuilderFocus = (gpBuilderFocus - 1 + BL_TOOLS.length) % BL_TOOLS.length; UI.setTool(BL_TOOLS[gpBuilderFocus]); }
       if (GPP.drone)  { gpBuilderFocus = (gpBuilderFocus + 1) % BL_TOOLS.length; UI.setTool(BL_TOOLS[gpBuilderFocus]); }
 
-      // D-pad left/right scrolls the level
-      if (gpMenuCooldown <= 0) {
-        if (isGPNavDir('left'))  { BLD.scrollX = Math.max(0, BLD.scrollX - 80); gpMenuCooldown = 6; }
-        if (isGPNavDir('right')) { BLD.scrollX = Math.min(BLD.levelData ? BLD.levelData.width - (W - BLD.SIDEBAR) : 0, BLD.scrollX + 80); gpMenuCooldown = 6; }
-        gpMenuCooldown = Math.max(0, gpMenuCooldown - 1);
+      // ── R2 (right trigger): place / start drag ──────────
+      const r2Held    = pad.buttons[7] && pad.buttons[7].pressed;
+      const r2Pressed = !!(pad.buttons[7] && pad.buttons[7].pressed) && !_gpPrev._r2;
+      _gpPrev._r2 = r2Held;
+
+      if (BLD.tool === 'platform') {
+        if (r2Pressed && !BLD.isDragging) BLD.startDrag(gpCursorX, gpCursorY);
+        if (r2Held    &&  BLD.isDragging) BLD.updateDrag(gpCursorX, gpCursorY);
+        if (!r2Held   &&  BLD.isDragging) BLD.endDrag(gpCursorX, gpCursorY);
       } else {
-        gpMenuCooldown = Math.max(0, gpMenuCooldown - 1);
+        if (r2Pressed) BLD.placeAt(gpCursorX, gpCursorY);
       }
 
-      // Triangle = test level, Options = exit builder
+      // ── L2 (left trigger): delete at cursor ──────────────
+      const l2Pressed = !!(pad.buttons[6] && pad.buttons[6].pressed) && !_gpPrev._l2;
+      _gpPrev._l2 = pad.buttons[6] && pad.buttons[6].pressed;
+      if (l2Pressed) {
+        const {x:wx, y:wy} = BLD.canvasToWorld(gpCursorX, gpCursorY);
+        BLD.saveState(); BLD.deleteAt(wx, wy); BLD.updateInfo();
+      }
+
+      // ── Triangle (△): test level ─────────────────────────
       if (GPP.charge) BLD.testLevel();
-      if (GPP.pause)  UI.exitBuilder();
-      // Square = save, Cross = new
+      // ── Square (□): save ─────────────────────────────────
       if (GPP.skirl)  BLD.saveLevel();
+      // ── Options: exit builder ────────────────────────────
+      if (GPP.pause)  UI.exitBuilder();
+    }
+
+    // Draw the gamepad cursor on top of the builder scene
+    function drawBuilderCursor() {
+      if (!gpActive || GS !== 'builder') return;
+      const x = gpCursorX, y = gpCursorY;
+      const col = BLD.isDragging ? '#ff6b6b' : '#6eb4ff';
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      // Crosshair
+      ctx.strokeStyle = col; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x-10,y); ctx.lineTo(x+10,y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x,y-10); ctx.lineTo(x,y+10); ctx.stroke();
+      // Centre dot
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
+      // Label: current tool
+      ctx.font = '6px "Press Start 2P"'; ctx.fillStyle = col; ctx.textAlign = 'left';
+      ctx.fillText(BLD.tool.toUpperCase(), x+8, y-4);
+      // If dragging, show drag start line
+      if (BLD.isDragging && BLD.dragStart) {
+        const sx = BLD.dragStart.x - BLD.scrollX + BLD.SIDEBAR;
+        const sy = BLD.dragStart.y;
+        ctx.strokeStyle = '#ff6b6b'; ctx.setLineDash([4,3]);
+        ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(x,y); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.restore();
     }
 
     // Gamepad connection events
