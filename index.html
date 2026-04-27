@@ -534,8 +534,8 @@
     .bl-cat span{font-size:4.5px;color:#555;}
     .bl-cat.active span{color:#4a8ac8;}
     .bl-panel{display:none;position:absolute;left:64px;top:0;flex-direction:column;gap:2px;background:rgba(4,4,16,.96);border:2px solid #2a2a4a;border-left:none;padding:4px;z-index:87;pointer-events:all;;max-height:200px;overflow-y:auto;}
-    #builder-bar{display:none;position:relative;width:906px;padding:5px 8px 5px 70px;background:#07060f;border:3px solid #2a2a4a;border-top:none;flex-direction:column;gap:4px;z-index:88;}
-    #builder-props{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+    #builder-bar{display:none;position:relative;width:906px;padding:3px 8px 3px 70px;background:#07060f;border:3px solid #2a2a4a;border-top:none;flex-direction:column;gap:2px;z-index:88;max-height:80px;overflow-y:auto;}
+    #builder-props{display:flex;gap:4px;align-items:center;flex-wrap:wrap;font-size:5px;}
     #builder-actions{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;}
     .btn.sml{font-size:6px;padding:4px 7px;min-width:auto;}
     .bl-tool{font-family:'Press Start 2P',monospace;font-size:9px;width:48px;height:38px;background:#0e0e1e;border:2px solid #2a2a4a;color:#aaa;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:.06s;}
@@ -723,7 +723,7 @@
       <div class="bl-tool active" id="bl-platform"   onclick="UI.setTool('platform')"   title="Normal platform (drag)">🏔<span>NORM</span></div>
       <div class="bl-tool"        id="bl-ice"        onclick="UI.setTool('ice')"        title="Ice platform (drag) — slippery">🧊<span>ICE</span></div>
       <div class="bl-tool"        id="bl-bounce"     onclick="UI.setTool('bounce')"     title="Bounce pad (drag)">🟢<span>BNC</span></div>
-      <div class="bl-tool"        id="bl-bounce-rot"  onclick="BLD.cycleBounceRot()"   title="Rotate bounce pad">🔄<span id='bl-brotval'>↑0°</span></div>
+      <div class="bl-tool"        id="bl-bounce-rot"  onclick="BLD.cycleBounceRot()"   title="Rotate bounce pad" style="display:none">🔄<span id='bl-brotval'>↑0°</span></div>
       <div class="bl-tool"        id="bl-oneway"     onclick="UI.setTool('oneway')"     title="One-way platform (drag) — stand on top, jump through below">⬆<span>1WAY</span></div>
       <div class="bl-tool"        id="bl-crumble"    onclick="UI.setTool('crumble')"    title="Crumble platform (drag) — breaks after standing on it">💥<span>CRBL</span></div>
       <div class="bl-tool"        id="bl-moving"     onclick="UI.setTool('moving')"     title="Moving platform (2 clicks: start then end point)">➡<span>MOVE</span></div>
@@ -743,6 +743,7 @@
       <div class="bl-tool" id="bl-qblock" onclick="UI.setTool('qblock')" title="? Item Block — random powerup">❓<span>ITEM</span></div>
       <div class="bl-tool" id="bl-cblock" onclick="UI.setTool('cblock')" title="💰 Coin block — gives coins on bump">💰<span>COIN</span></div>
       <div class="bl-tool" id="bl-trophy" onclick="UI.setTool('trophy')" title="🏆 Invincibility trophy">🏆<span>TPHY</span></div>
+      <div class="bl-tool" id="bl-ember" onclick="UI.setTool('ember')" title="🔥 Spirit Ember (3 per level)">🔥<span>EMBR</span></div>
       <div class="bl-sep"></div>
       <div style="font-size:5px;color:#888;width:100%;padding:2px 4px;">POWERUP ITEMS</div>
       <div class="bl-tool" id="bl-pu-rapid"     onclick="UI.setTool('pu-rapid')"     title="Rapid fire powerup">⚡<span>FAST</span></div>
@@ -750,6 +751,8 @@
       <div class="bl-tool" id="bl-pu-bomb"       onclick="UI.setTool('pu-bomb')"       title="Bomb powerup">💣<span>BOMB</span></div>
       <div class="bl-tool" id="bl-pu-drum"       onclick="UI.setTool('pu-drum')"       title="War drum powerup">🥁<span>DRUM</span></div>
       <div class="bl-tool" id="bl-pu-invincible" onclick="UI.setTool('pu-invincible')" title="Invincibility powerup">✨<span>INVC</span></div>
+      <div class="bl-tool" id="bl-pu-chargerefresh" onclick="UI.setTool('pu-chargerefresh')" title="Charge Refresh - resets highland charge" style="color:#ff8844">⚔️<span>CHRG↺</span></div>
+      <div class="bl-tool" id="bl-pu-extrajump"    onclick="UI.setTool('pu-extrajump')"    title="Extra Jump - grants +1 jump" style="color:#88aaff">🪶<span>+JUMP</span></div>
     </div>
     <div class="bl-panel" id="blpanel-enemies" style="display:none">
       <div class="bl-tool" id="bl-enemy0" onclick="UI.setTool('enemy0')" title="Drum Patrol">👾<span>PTR</span></div>
@@ -763,36 +766,57 @@
     </div>
 
     <div id="builder-bar">
-      <div id="builder-props">
-        <label>NAME</label><input type="text" id="bl-name" value="CUSTOM LEVEL" maxlength="20" oninput="BLD.levelData&&(BLD.levelData.name=this.value)">
-        <label>WIDTH</label><input type="number" id="bl-width" value="3200" min="900" max="8000" step="100" onchange="BLD.setWidth(+this.value)">
-        <label>THEME</label>
-        <select id="bl-theme" onchange="BLD.setTheme(this.value)">
-          <option value="highland">Highland</option>
-          <option value="volcanic">Volcanic</option>
-          <option value="frozen">Frozen</option>
-          <option value="shadow">Shadow</option>
-        </select>
-        <label style="margin-top:4px;">PLAT COLORS</label>
-        <div style="display:flex;gap:2px;flex-wrap:wrap;">
-          <input type="color" id="bl-col0" value="#1a3010" title="Soil" oninput="BLD.updatePlatColor(0,this.value)" style="width:18px;height:18px;padding:0;border:none;cursor:pointer;">
-          <input type="color" id="bl-col1" value="#243a18" title="Dirt" oninput="BLD.updatePlatColor(1,this.value)" style="width:18px;height:18px;padding:0;border:none;cursor:pointer;">
-          <input type="color" id="bl-col2" value="#3a7a28" title="Grass" oninput="BLD.updatePlatColor(2,this.value)" style="width:18px;height:18px;padding:0;border:none;cursor:pointer;">
-          <input type="color" id="bl-col3" value="#4a9a32" title="Grass2" oninput="BLD.updatePlatColor(3,this.value)" style="width:18px;height:18px;padding:0;border:none;cursor:pointer;">
-          <input type="color" id="bl-col4" value="#5ab840" title="Turf" oninput="BLD.updatePlatColor(4,this.value)" style="width:18px;height:18px;padding:0;border:none;cursor:pointer;">
+      <div id="builder-props" style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;">
+        <!-- Row 1: Level properties -->
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap;">
+          <label style="font-size:5px;color:#aaa;white-space:nowrap">NAME</label>
+          <input type="text" id="bl-name" value="CUSTOM LEVEL" maxlength="20" oninput="BLD.levelData&&(BLD.levelData.name=this.value)" style="width:70px;font-size:5px">
+          <label style="font-size:5px;color:#aaa">W</label>
+          <input type="number" id="bl-width" value="3200" min="900" max="8000" step="100" onchange="BLD.setWidth(+this.value)" style="width:42px;font-size:5px">
+          <label style="font-size:5px;color:#aaa">H</label>
+          <input type="number" id="bl-height" value="560" min="560" max="2000" step="100" onchange="BLD.setHeight(+this.value)" style="width:42px;font-size:5px">
+          <label style="font-size:5px;color:#aaa">SW</label>
+          <select id="bl-swgroup" title="Switch group" style="font-size:5px;width:28px"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
+          <label style="font-size:5px;color:#aaa">VOID</label>
+          <input type="checkbox" id="bl-void" onchange="BLD.levelData&&(BLD.levelData.voidFloor=this.checked)" title="Void floor">
+          <label style="font-size:5px;color:#aaa">SLOT</label>
+          <select id="bl-slot" style="font-size:5px;width:24px"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+          <label id="bl-movespeed-lbl" style="display:none;font-size:5px;color:#5af">SPD</label>
+          <input type="range" id="bl-movespeed" min="0.5" max="4" step="0.25" value="1.5" style="width:55px;display:none" oninput="document.getElementById('bl-speedval').textContent=parseFloat(this.value).toFixed(2)" title="Moving platform speed">
+          <span id="bl-speedval" style="font-size:5px;color:#5af;display:none">1.50</span>
         </div>
-        <label>SW-GRP</label>
-        <select id="bl-swgroup" title="Switch group for switchA/switchB/switch tiles"><option value="A">A</option><option value="B">B</option><option value="C">C</option></select>
-        <label id="bl-movespeed-lbl" style="display:none">MV SPD</label>
-        <input type="range" id="bl-movespeed" min="0.5" max="4" step="0.25" value="1.5"
-          style="width:60px;vertical-align:middle;display:none;"
-          oninput="document.getElementById('bl-speedval').textContent=parseFloat(this.value).toFixed(2)"
-          title="Moving platform speed">
-        <span id="bl-speedval" style="font-size:5px;color:#5af;display:none;">1.50</span>
-        <label>VOID</label>
-        <input type="checkbox" id="bl-void" onchange="BLD.levelData&&(BLD.levelData.voidFloor=this.checked)" title="Void floor — falling = death">
-        <label>SLOT</label>
-        <select id="bl-slot"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+        <!-- Row 2: Visual/audio properties -->
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:nowrap;">
+          <label style="font-size:5px;color:#aaa">THEME</label>
+          <select id="bl-theme" onchange="BLD.setTheme(this.value)" style="font-size:5px;width:58px">
+            <option value="highland">Highland</option>
+            <option value="volcanic">Volcanic</option>
+            <option value="frozen">Frozen</option>
+            <option value="shadow">Shadow</option>
+          </select>
+          <label style="font-size:5px;color:#aaa">CLR</label>
+          <input type="color" id="bl-col0" value="#1a3010" title="Soil"   oninput="BLD.updatePlatColor(0,this.value)" style="width:16px;height:16px;padding:0;border:none;cursor:pointer">
+          <input type="color" id="bl-col1" value="#243a18" title="Dirt"   oninput="BLD.updatePlatColor(1,this.value)" style="width:16px;height:16px;padding:0;border:none;cursor:pointer">
+          <input type="color" id="bl-col2" value="#3a7a28" title="Grass"  oninput="BLD.updatePlatColor(2,this.value)" style="width:16px;height:16px;padding:0;border:none;cursor:pointer">
+          <input type="color" id="bl-col3" value="#4a9a32" title="Grass2" oninput="BLD.updatePlatColor(3,this.value)" style="width:16px;height:16px;padding:0;border:none;cursor:pointer">
+          <input type="color" id="bl-col4" value="#5ab840" title="Turf"   oninput="BLD.updatePlatColor(4,this.value)" style="width:16px;height:16px;padding:0;border:none;cursor:pointer">
+          <label style="font-size:5px;color:#aaa">♫</label>
+          <select id="bl-music" onchange="BLD.setMusic(this.value)" style="font-size:5px;width:100px">
+            <option value="">Auto</option>
+            <option value="Granite Savepoint.mp3">Granite Savepoint</option>
+            <option value="Baked Bagpipes.mp3">Baked Bagpipes</option>
+            <option value="Granite Savepoint (1).mp3">Granite SP 2</option>
+            <option value="Baked Bagpipes (1).mp3">Baked Bagpipes 2</option>
+            <option value="Cartridge Thunder.mp3">Cartridge Thunder</option>
+            <option value="Cartridge Thunder (1).mp3">Cartridge Thunder 2</option>
+            <option value="new:0">Arcade Labyrinth</option>
+            <option value="new:1">Highland Pixel Quest</option>
+            <option value="new:2">Bagpipes x Thunder</option>
+            <option value="new:3">Bagpipes x Thunder 2</option>
+            <option value="new:4">Granite x Highland</option>
+            <option value="new:5">Granite x Highland 2</option>
+          </select>
+        </div>
       </div>
       <div id="builder-actions">
         <button class="btn sml" onclick="BLD.newLevel()" title="New blank level">✚</button>
@@ -965,11 +989,28 @@
             o2.type='sawtooth';o2.frequency.setValueAtTime(f,now+i*.06);
             g2.gain.setValueAtTime(.2,now+i*.06);g2.gain.exponentialRampToValueAtTime(.001,now+i*.06+.2);
             o2.start(now+i*.06);o2.stop(now+i*.06+.2);}); break; }
+        case 'ember':
+          { const t0=now;
+            [587,784,1047,784,1047].forEach((f,i)=>{
+              const eo=AC.createOscillator(),eg=AC.createGain();
+              eo.type='sawtooth'; eo.frequency.value=f;
+              eg.gain.setValueAtTime(.18,t0+i*.06); eg.gain.exponentialRampToValueAtTime(.001,t0+i*.06+.1);
+              eo.connect(eg); eg.connect(masterGain); eo.start(t0+i*.06); eo.stop(t0+i*.06+.1);
+            }); } break;
         default: o.stop(now);
       }
     }
 
     // ── MUSIC — HTML5 Audio using provided MP3 tracks ────────────────────────
+    // New songs — referenced by filename (must be in same directory as HTML)
+    const NEW_SONGS = [
+      'Arcade Labyrinth.mp3',
+      'Highland Pixel Quest.mp3',
+      'Baked Bagpipes x Cartridge Thunder (Mashup).mp3',
+      'Baked Bagpipes x Cartridge Thunder (Mashup) (1).mp3',
+      'Granite Savepoint x Highland Pixel Quest (Mashup).mp3',
+      'Granite Savepoint x Highland Pixel Quest (Mashup) (1).mp3',
+    ];
     const SONG_PLAYLIST = [
       'Granite Savepoint.mp3',             // Title Screen
       'Baked Bagpipes.mp3',                // Level 1
@@ -977,6 +1018,8 @@
       'Baked Bagpipes (1).mp3',            // Level 3
       'Cartridge Thunder.mp3',             // Level 4
       'Cartridge Thunder (1).mp3',         // Level 5 & Level 6 Boss
+      // New tracks (indices 6-11, use data URIs from NEW_SONGS)
+      'new:0','new:1','new:2','new:3','new:4','new:5',
     ];
 
     let _audio = null;
@@ -985,15 +1028,10 @@
 
 
     function _songIndex() {
-      if (typeof currentLevel === 'undefined' || GS !== 'playing') return 0;
-
-      // FINAL LEVEL (level 6)
-      if (currentLevel === 6) {
-        // randomly choose between the 2 Granite tracks
-        return Math.random() < 0.5 ? 0 : 2;
-      }
-
-      return Math.min(currentLevel, SONG_PLAYLIST.length - 1);
+      // Level-specific music override (set in builder)
+      try { const ld=getLevelData(); if(ld&&ld.music){const si=SONG_PLAYLIST.indexOf(ld.music);if(si>=0)return si;} } catch(e){}
+      // Random track from all 12 songs each level
+      return Math.floor(Math.random() * SONG_PLAYLIST.length);
     }
 
     function startMusic() {
@@ -1013,9 +1051,24 @@
       }
     }
 
+    function _loadAndPlay(filename) {
+      if (_audio) { _audio.pause(); _audio = null; }
+      if (!musicPlaying) return;
+      _audio = new Audio(filename);
+      _audio.loop = true;
+      _audio.volume = 0.5;
+      _audio.play().catch(e => console.warn('Could not play', filename, e.message));
+    }
+
     function _playTrack(idx) {
       if (_audio) { _audio.pause(); _audio = null; }
       if (!musicPlaying) return;
+      const songEntry = SONG_PLAYLIST[idx];
+      if (songEntry && songEntry.startsWith('new:')) {
+        const ni = parseInt(songEntry.slice(4));
+        _loadAndPlay(NEW_SONGS[ni]);
+        return;
+      }
       const src = SONG_PLAYLIST[idx] || SONG_PLAYLIST[0];
       const a = new Audio(src);
       if (_musicTime) {
@@ -2282,6 +2335,8 @@
         document.getElementById('builder-bar').style.display='none';
         score=0;coins=0;currentWorld=world;currentLevel=lvl;levelTime=0;
         GS='playing';initLevel(lvl);startMusic();resumeAC();
+        const _ehud=document.getElementById('hud-embers');
+        if(_ehud){const _eld=getLevelData();const _et=(_eld?.spiritEmbers||[]).length;_ehud.textContent='🔥 0/'+_et;}
       },
       resume(){GS='playing';document.getElementById('s-pause').classList.remove('active');startMusic();},
       restart(){this.startGame(currentWorld,currentLevel);document.getElementById('s-gameover').classList.remove('active');},
@@ -2349,7 +2404,7 @@
         // Highlight the parent category button
         const catMap={platform:'terrain',ice:'terrain',bounce:'terrain',oneway:'terrain',crumble:'terrain',moving:'terrain',switchA:'terrain',switchB:'terrain',switch:'terrain',
           spike:'hazard',checkpoint:'hazard',goal:'hazard',
-          coin:'objects',qblock:'objects',cblock:'objects',trophy:'objects','pu-rapid':'objects','pu-big':'objects','pu-bomb':'objects','pu-drum':'objects','pu-invincible':'objects',
+          coin:'objects',qblock:'objects',cblock:'objects',trophy:'objects',ember:'objects','pu-rapid':'objects','pu-big':'objects','pu-bomb':'objects','pu-drum':'objects','pu-invincible':'objects','pu-chargerefresh':'objects','pu-extrajump':'objects',
           enemy0:'enemies',enemy1:'enemies',enemy2:'enemies',enemy3:'enemies',
           enemy4:'enemies',enemy5:'enemies',enemy6:'enemies',enemyE:'enemies'};
         document.querySelectorAll('.bl-cat').forEach(el=>el.classList.remove('active'));
@@ -2360,6 +2415,9 @@
         ['bl-movespeed','bl-movespeed-lbl','bl-speedval'].forEach(id=>{
           const el=document.getElementById(id); if(el) el.style.display=showSpeed?'':'none';
         });
+        // Show bounce rot only for bounce tool
+        const brotEl = document.getElementById('bl-bounce-rot');
+        if (brotEl) brotEl.style.display = t==='bounce' ? '' : 'none';
       },
     };
 
@@ -2453,6 +2511,7 @@
         }
       }
     }
+
 
     function initSpecialPlats(ld) {
       specialPlatState = {};
@@ -2565,6 +2624,45 @@
     // Runtime state for special platforms (reset on initLevel)
     let specialPlatState = {};  // key=index: {crumble, respawn, switchState(global)}
     let switchGroupState = {};  // switchGroupId -> bool (false=A solid, true=B solid)
+
+    // OBB vs AABB collision using SAT in platform local space
+    // Only called for platforms with rotation != 0
+    function resolveVsRotatedPlats(obj, w, h, plats) {
+      for (const plat of plats) {
+        const rot = (plat.rotation||0) * Math.PI / 180;
+        if (!rot) continue;
+        const pw=plat.w||80, ph=plat.h||18;
+        const pcx=plat.x+pw/2, pcy=plat.y+ph/2;
+        const C=Math.cos(rot), S=Math.sin(rot);
+        // Rotate player centre into platform's local space
+        const ocx=obj.x+w/2-pcx, ocy=obj.y+h/2-pcy;
+        const lx= ocx*C+ocy*S;   // local X of player centre
+        const ly=-ocx*S+ocy*C;   // local Y of player centre
+        // Overlap on each local axis (half-extents sum minus centre distance)
+        const overlapX = (pw/2 + w/2) - Math.abs(lx);
+        const overlapY = (ph/2 + h/2) - Math.abs(ly);
+        if (overlapX <= 0 || overlapY <= 0) continue; // separated — no collision
+        // Push out along axis of minimum penetration in LOCAL space
+        let pnlx=0, pnly=0, pushAmt=0;
+        if (overlapX < overlapY) {
+          pnlx = lx < 0 ? -1 : 1;   // push left or right in local space
+          pushAmt = overlapX;
+        } else {
+          pnly = ly < 0 ? -1 : 1;   // push up or down in local space
+          pushAmt = overlapY;
+        }
+        // Convert local push normal back to world space: multiply by rotation matrix
+        const wnx = pnlx*C - pnly*S;
+        const wny = pnlx*S + pnly*C;
+        obj.x += wnx * pushAmt;
+        obj.y += wny * pushAmt;
+        // Cancel velocity into surface (project out the into-surface component)
+        const vdot = obj.vx*wnx + obj.vy*wny;
+        if (vdot < 0) { obj.vx -= vdot*wnx; obj.vy -= vdot*wny; }
+        // Set onGround if surface normal has significant upward component
+        if (wny < -0.4 && obj.vy >= 0) { obj.vy = 0; obj.onGround = true; }
+      }
+    }
 
     function initSpecialPlats(ld) {
       specialPlatState = {};
@@ -2805,6 +2903,44 @@
         ctx.textAlign = 'left';
       }
 
+      // Floating powerups (from qblocks)
+      for (const pu of powerups) {
+        if (pu.x + 24 < camera.x - 20 || pu.x > camera.x + W + 20) continue;
+        const puColors = { rapid:'#ff4488', big:'#44ffcc', bomb:'#ff8800', drum:'#ff4400', invincible:'#ffd700', chargerefresh:'#ff8844', extrajump:'#88aaff' };
+        const puIcons  = { rapid:'⚡', big:'🎵', bomb:'💣', drum:'🥁', invincible:'🏆', chargerefresh:'⚔️', extrajump:'🪶' };
+        const col = puColors[pu.type]||'#f5c518';
+        // Glow box
+        ctx.fillStyle = col; ctx.globalAlpha = 0.25;
+        ctx.fillRect(pu.x - 2, pu.y - 2, 28, 28);
+        ctx.globalAlpha = 1;
+        // Coloured border
+        ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.strokeRect(pu.x, pu.y, 24, 24); ctx.lineWidth = 1;
+        // Icon
+        ctx.font = '14px serif'; ctx.textAlign = 'center';
+        ctx.fillText(puIcons[pu.type]||'★', pu.x+12, pu.y+17);
+        ctx.textAlign = 'left';
+      }
+
+      // Spirit Embers (3 per level collectibles)
+      for (const em of (ld.spiritEmbers||[])) {
+        if (em.collected) continue;
+        if (em.x+20<camera.x-20||em.x>camera.x+W+20) continue;
+        const pulse = 0.7 + Math.sin(frameCount*0.12+em.x*.01)*0.3;
+        const eb = Math.sin(frameCount*0.08+em.x*.01)*3;
+        // Glow
+        const eg=ctx.createRadialGradient(em.x+10,em.y+10+eb,0,em.x+10,em.y+10+eb,18);
+        eg.addColorStop(0,'rgba(255,140,20,0.6)'); eg.addColorStop(1,'transparent');
+        ctx.fillStyle=eg; ctx.fillRect(em.x-8,em.y-8+eb,36,36);
+        // Ember sprite
+        ctx.save(); ctx.translate(em.x+10,em.y+10+eb); ctx.rotate(frameCount*0.03);
+        ctx.font='18px serif'; ctx.textAlign='center'; ctx.fillText('🔥',0,6);
+        ctx.restore();
+        // Ember number badge
+        ctx.font='5px "Press Start 2P"'; ctx.fillStyle='#ff8820'; ctx.textAlign='center';
+        ctx.fillText((em.idx||0)+1+'★', em.x+10, em.y-4+eb); ctx.textAlign='left';
+      }
+
       // Trophies (invincibility pickups)
       for (const t of (ld.trophies||[])) {
         if (t.collected) continue;
@@ -2884,7 +3020,10 @@
       // qblocks and cblocks are always solid (even after being hit)
       const blockSolid = [...(ld.qblocks||[]).map(q=>({x:q.x,y:q.y,w:28,h:28})),
                           ...(ld.cblocks||[]).map(c=>({x:c.x,y:c.y,w:28,h:28}))];
-      resolveVsPlats(p, PW, PH, [...solidPlats, ...mpAsSolid, ...blockSolid]);
+      const rotatedPlats = solidPlats.filter(pl => pl.rotation);
+      const aabbPlats    = solidPlats.filter(pl => !pl.rotation);
+      resolveVsPlats(p, PW, PH, [...aabbPlats, ...mpAsSolid, ...blockSolid]);
+      resolveVsRotatedPlats(p, PW, PH, rotatedPlats);
       // One-way: can jump through from below, stand on top
       resolveVsOneway(p, PW, PH, (ld.platforms||[]).filter(pl=>pl.type==='oneway' && voidFilter(pl)));
 
@@ -2908,16 +3047,41 @@
         }
       }
 
-      // ─── Bounce pads (separate bounce pads) ───────────────
-      if (ld.bounces && ld.bounces.length) {
-        const prevVy = p.vy;
-        resolveVsPlats(p, PW, PH, ld.bounces.map(b=>({...b,h:b.h||14})));
-        anyGrounded = anyGrounded || p.onGround;
-        if (p.vy < prevVy - 1 && p.vy <= 0) {
-          p.vy = JFORCE * 1.5; anyGrounded = false; p.jumpsLeft = 2;
-          sfx('bounce_land'); spawnPart(p.x+16, p.y+PH, '#00ffcc', 14, 4);
-          floatText('BOING!', p.x - camera.x - 20, p.y - camera.y, '#00ffcc');
+      // ─── Bounce pads — face-normal detection, any angle ─────────
+      if ((p._bounceCd||0) > 0) p._bounceCd--;
+      for (const bp of (ld.bounces||[])) {
+        const bw=bp.w||50, bh=bp.h||14;
+        if (!overlap(p.x, p.y, PW, PH, bp.x, bp.y, bw, bh)) continue;
+
+        // Compute launch direction unit vector from pad rotation
+        const rad = (bp.rotation||0) * Math.PI / 180;
+        const lx = Math.sin(rad), ly = -Math.cos(rad); // 0°=up,90°=right,180°=down,270°=left
+
+        // Use VELOCITY to determine which face the player approached from.
+        // This is more reliable than min-penetration because it handles 180° ceiling pads:
+        // player jumping up (vy<0) correctly resolves to bottom face instead of top.
+        const absVx=Math.abs(p.vx), absVy=Math.abs(p.vy);
+        let fnx=0, fny=0;
+        if (absVy >= absVx) {
+          if (p.vy < 0) { p.y=bp.y+bh; p.vy=Math.max(p.vy,0); fny=+1; } // moving up→bottom face
+          else          { p.y=bp.y-PH;  p.vy=Math.min(p.vy,0); fny=-1; } // moving down→top face
+        } else {
+          if (p.vx < 0) { p.x=bp.x+bw; p.vx=Math.max(p.vx,0); fnx=+1; } // moving left→right face
+          else          { p.x=bp.x-PW;  p.vx=Math.min(p.vx,0); fnx=-1; } // moving right→left face
         }
+
+        // Fire if face normal aligns with launch direction (player hit the ARROW side)
+        const faceDot = fnx*lx + fny*ly;
+        if (faceDot > 0.5 && (p._bounceCd||0) <= 0) {
+          const force = Math.abs(JFORCE) * 1.5;
+          p.vx = lx * force;
+          p.vy = ly * force;
+          p.onGround = false; p.jumpsLeft = 2; anyGrounded = false;
+          p._bounceCd = 24;
+          sfx('bounce_land'); spawnPart(p.x+PW/2,p.y+PH/2,'#00ffcc',14,4);
+          floatText('BOING!', p.x-camera.x-20, p.y-camera.y, '#00ffcc');
+        }
+        break;
       }
 
       // Commit final grounded state — used by coyoteTimer and jump next frame
@@ -2927,13 +3091,11 @@
       // ─── Terrain type detection ───────────────────────────
       p.standingOn = 'normal';
       if (p.onGround) {
-        // Check typed platforms (inline type field)
         for (const pl of ld.platforms) {
           if (pl.type && overlap(p.x+2, p.y+PH-3, PW-4, 5, pl.x, pl.y, pl.w, pl.h)) {
             p.standingOn = pl.type; break;
           }
         }
-        // Check builder-placed icePlats array
         if (p.standingOn === 'normal') {
           for (const ip of (ld.icePlats||[])) {
             if (overlap(p.x+2, p.y+PH-3, PW-4, 5, ip.x, ip.y, ip.w||55, ip.h||18)) {
@@ -2941,32 +3103,8 @@
             }
           }
         }
-        // Check builder-placed bounces array
-        if (p.standingOn === 'normal') {
-          for (const bp of (ld.bounces||[])) {
-            if (overlap(p.x+2, p.y+PH-3, PW-4, 5, bp.x, bp.y, bp.w||50, bp.h||14)) {
-              p.standingOn = 'bounce'; break;
-            }
-          }
-        }
       }
 
-      // ─── Bounce pad — direction based on rotation ────────
-      if (p.standingOn === 'bounce' && p.vy >= -2) {
-        // Find which bounce pad we're on to get its rotation
-        let bpRot = 0;
-        for (const bp of (ld.bounces||[])) {
-          if (overlap(p.x+2, p.y+PH-3, PW-4, 5, bp.x, bp.y, bp.w||50, bp.h||14)) {
-            bpRot = (bp.rotation||0) * Math.PI / 180; break;
-          }
-        }
-        const force = Math.abs(JFORCE) * 1.5;
-        p.vx += Math.sin(bpRot) * force;
-        p.vy  = -Math.cos(bpRot) * force;
-        p.onGround = false; p.jumpsLeft = 2;
-        sfx('bounce_land'); spawnPart(p.x+16, p.y+PH, '#00ffcc', 14, 4);
-        floatText('BOING!', p.x - camera.x - 20, p.y - camera.y, '#00ffcc');
-      }
 
       // ─── Spikes ───────────────────────────────────────────
       if (!p.invincible && ld.spikes) {
@@ -3056,6 +3194,44 @@
         ctx.textAlign = 'left';
       }
 
+      // Floating powerups (from qblocks)
+      for (const pu of powerups) {
+        if (pu.x + 24 < camera.x - 20 || pu.x > camera.x + W + 20) continue;
+        const puColors = { rapid:'#ff4488', big:'#44ffcc', bomb:'#ff8800', drum:'#ff4400', invincible:'#ffd700', chargerefresh:'#ff8844', extrajump:'#88aaff' };
+        const puIcons  = { rapid:'⚡', big:'🎵', bomb:'💣', drum:'🥁', invincible:'🏆', chargerefresh:'⚔️', extrajump:'🪶' };
+        const col = puColors[pu.type]||'#f5c518';
+        // Glow box
+        ctx.fillStyle = col; ctx.globalAlpha = 0.25;
+        ctx.fillRect(pu.x - 2, pu.y - 2, 28, 28);
+        ctx.globalAlpha = 1;
+        // Coloured border
+        ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.strokeRect(pu.x, pu.y, 24, 24); ctx.lineWidth = 1;
+        // Icon
+        ctx.font = '14px serif'; ctx.textAlign = 'center';
+        ctx.fillText(puIcons[pu.type]||'★', pu.x+12, pu.y+17);
+        ctx.textAlign = 'left';
+      }
+
+      // Spirit Embers (3 per level collectibles)
+      for (const em of (ld.spiritEmbers||[])) {
+        if (em.collected) continue;
+        if (em.x+20<camera.x-20||em.x>camera.x+W+20) continue;
+        const pulse = 0.7 + Math.sin(frameCount*0.12+em.x*.01)*0.3;
+        const eb = Math.sin(frameCount*0.08+em.x*.01)*3;
+        // Glow
+        const eg=ctx.createRadialGradient(em.x+10,em.y+10+eb,0,em.x+10,em.y+10+eb,18);
+        eg.addColorStop(0,'rgba(255,140,20,0.6)'); eg.addColorStop(1,'transparent');
+        ctx.fillStyle=eg; ctx.fillRect(em.x-8,em.y-8+eb,36,36);
+        // Ember sprite
+        ctx.save(); ctx.translate(em.x+10,em.y+10+eb); ctx.rotate(frameCount*0.03);
+        ctx.font='18px serif'; ctx.textAlign='center'; ctx.fillText('🔥',0,6);
+        ctx.restore();
+        // Ember number badge
+        ctx.font='5px "Press Start 2P"'; ctx.fillStyle='#ff8820'; ctx.textAlign='center';
+        ctx.fillText((em.idx||0)+1+'★', em.x+10, em.y-4+eb); ctx.textAlign='left';
+      }
+
       // Trophies (invincibility pickups)
       for (const t of (ld.trophies||[])) {
         if (t.collected) continue;
@@ -3090,6 +3266,44 @@
         ctx.font = '18px serif'; ctx.textAlign = 'center';
         ctx.fillText(puIcons2[pu.type]||'?', pu.x+14, pu.y+20+bob2);
         ctx.textAlign = 'left';
+      }
+
+      // Floating powerups (from qblocks)
+      for (const pu of powerups) {
+        if (pu.x + 24 < camera.x - 20 || pu.x > camera.x + W + 20) continue;
+        const puColors = { rapid:'#ff4488', big:'#44ffcc', bomb:'#ff8800', drum:'#ff4400', invincible:'#ffd700', chargerefresh:'#ff8844', extrajump:'#88aaff' };
+        const puIcons  = { rapid:'⚡', big:'🎵', bomb:'💣', drum:'🥁', invincible:'🏆', chargerefresh:'⚔️', extrajump:'🪶' };
+        const col = puColors[pu.type]||'#f5c518';
+        // Glow box
+        ctx.fillStyle = col; ctx.globalAlpha = 0.25;
+        ctx.fillRect(pu.x - 2, pu.y - 2, 28, 28);
+        ctx.globalAlpha = 1;
+        // Coloured border
+        ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.strokeRect(pu.x, pu.y, 24, 24); ctx.lineWidth = 1;
+        // Icon
+        ctx.font = '14px serif'; ctx.textAlign = 'center';
+        ctx.fillText(puIcons[pu.type]||'★', pu.x+12, pu.y+17);
+        ctx.textAlign = 'left';
+      }
+
+      // Spirit Embers (3 per level collectibles)
+      for (const em of (ld.spiritEmbers||[])) {
+        if (em.collected) continue;
+        if (em.x+20<camera.x-20||em.x>camera.x+W+20) continue;
+        const pulse = 0.7 + Math.sin(frameCount*0.12+em.x*.01)*0.3;
+        const eb = Math.sin(frameCount*0.08+em.x*.01)*3;
+        // Glow
+        const eg=ctx.createRadialGradient(em.x+10,em.y+10+eb,0,em.x+10,em.y+10+eb,18);
+        eg.addColorStop(0,'rgba(255,140,20,0.6)'); eg.addColorStop(1,'transparent');
+        ctx.fillStyle=eg; ctx.fillRect(em.x-8,em.y-8+eb,36,36);
+        // Ember sprite
+        ctx.save(); ctx.translate(em.x+10,em.y+10+eb); ctx.rotate(frameCount*0.03);
+        ctx.font='18px serif'; ctx.textAlign='center'; ctx.fillText('🔥',0,6);
+        ctx.restore();
+        // Ember number badge
+        ctx.font='5px "Press Start 2P"'; ctx.fillStyle='#ff8820'; ctx.textAlign='center';
+        ctx.fillText((em.idx||0)+1+'★', em.x+10, em.y-4+eb); ctx.textAlign='left';
       }
 
       // Trophies (invincibility pickups)
@@ -3139,6 +3353,44 @@
         ctx.textAlign = 'left';
       }
 
+      // Floating powerups (from qblocks)
+      for (const pu of powerups) {
+        if (pu.x + 24 < camera.x - 20 || pu.x > camera.x + W + 20) continue;
+        const puColors = { rapid:'#ff4488', big:'#44ffcc', bomb:'#ff8800', drum:'#ff4400', invincible:'#ffd700', chargerefresh:'#ff8844', extrajump:'#88aaff' };
+        const puIcons  = { rapid:'⚡', big:'🎵', bomb:'💣', drum:'🥁', invincible:'🏆', chargerefresh:'⚔️', extrajump:'🪶' };
+        const col = puColors[pu.type]||'#f5c518';
+        // Glow box
+        ctx.fillStyle = col; ctx.globalAlpha = 0.25;
+        ctx.fillRect(pu.x - 2, pu.y - 2, 28, 28);
+        ctx.globalAlpha = 1;
+        // Coloured border
+        ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.strokeRect(pu.x, pu.y, 24, 24); ctx.lineWidth = 1;
+        // Icon
+        ctx.font = '14px serif'; ctx.textAlign = 'center';
+        ctx.fillText(puIcons[pu.type]||'★', pu.x+12, pu.y+17);
+        ctx.textAlign = 'left';
+      }
+
+      // Spirit Embers (3 per level collectibles)
+      for (const em of (ld.spiritEmbers||[])) {
+        if (em.collected) continue;
+        if (em.x+20<camera.x-20||em.x>camera.x+W+20) continue;
+        const pulse = 0.7 + Math.sin(frameCount*0.12+em.x*.01)*0.3;
+        const eb = Math.sin(frameCount*0.08+em.x*.01)*3;
+        // Glow
+        const eg=ctx.createRadialGradient(em.x+10,em.y+10+eb,0,em.x+10,em.y+10+eb,18);
+        eg.addColorStop(0,'rgba(255,140,20,0.6)'); eg.addColorStop(1,'transparent');
+        ctx.fillStyle=eg; ctx.fillRect(em.x-8,em.y-8+eb,36,36);
+        // Ember sprite
+        ctx.save(); ctx.translate(em.x+10,em.y+10+eb); ctx.rotate(frameCount*0.03);
+        ctx.font='18px serif'; ctx.textAlign='center'; ctx.fillText('🔥',0,6);
+        ctx.restore();
+        // Ember number badge
+        ctx.font='5px "Press Start 2P"'; ctx.fillStyle='#ff8820'; ctx.textAlign='center';
+        ctx.fillText((em.idx||0)+1+'★', em.x+10, em.y-4+eb); ctx.textAlign='left';
+      }
+
       // Trophies (invincibility pickups)
       for (const t of (ld.trophies||[])) {
         if (t.collected) continue;
@@ -3177,6 +3429,44 @@
         ctx.font = '18px serif'; ctx.textAlign = 'center';
         ctx.fillText(puIcons2[pu.type]||'?', pu.x+14, pu.y+20+bob2);
         ctx.textAlign = 'left';
+      }
+
+      // Floating powerups (from qblocks)
+      for (const pu of powerups) {
+        if (pu.x + 24 < camera.x - 20 || pu.x > camera.x + W + 20) continue;
+        const puColors = { rapid:'#ff4488', big:'#44ffcc', bomb:'#ff8800', drum:'#ff4400', invincible:'#ffd700', chargerefresh:'#ff8844', extrajump:'#88aaff' };
+        const puIcons  = { rapid:'⚡', big:'🎵', bomb:'💣', drum:'🥁', invincible:'🏆', chargerefresh:'⚔️', extrajump:'🪶' };
+        const col = puColors[pu.type]||'#f5c518';
+        // Glow box
+        ctx.fillStyle = col; ctx.globalAlpha = 0.25;
+        ctx.fillRect(pu.x - 2, pu.y - 2, 28, 28);
+        ctx.globalAlpha = 1;
+        // Coloured border
+        ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.strokeRect(pu.x, pu.y, 24, 24); ctx.lineWidth = 1;
+        // Icon
+        ctx.font = '14px serif'; ctx.textAlign = 'center';
+        ctx.fillText(puIcons[pu.type]||'★', pu.x+12, pu.y+17);
+        ctx.textAlign = 'left';
+      }
+
+      // Spirit Embers (3 per level collectibles)
+      for (const em of (ld.spiritEmbers||[])) {
+        if (em.collected) continue;
+        if (em.x+20<camera.x-20||em.x>camera.x+W+20) continue;
+        const pulse = 0.7 + Math.sin(frameCount*0.12+em.x*.01)*0.3;
+        const eb = Math.sin(frameCount*0.08+em.x*.01)*3;
+        // Glow
+        const eg=ctx.createRadialGradient(em.x+10,em.y+10+eb,0,em.x+10,em.y+10+eb,18);
+        eg.addColorStop(0,'rgba(255,140,20,0.6)'); eg.addColorStop(1,'transparent');
+        ctx.fillStyle=eg; ctx.fillRect(em.x-8,em.y-8+eb,36,36);
+        // Ember sprite
+        ctx.save(); ctx.translate(em.x+10,em.y+10+eb); ctx.rotate(frameCount*0.03);
+        ctx.font='18px serif'; ctx.textAlign='center'; ctx.fillText('🔥',0,6);
+        ctx.restore();
+        // Ember number badge
+        ctx.font='5px "Press Start 2P"'; ctx.fillStyle='#ff8820'; ctx.textAlign='center';
+        ctx.fillText((em.idx||0)+1+'★', em.x+10, em.y-4+eb); ctx.textAlign='left';
       }
 
       // Trophies (invincibility pickups)
@@ -3263,7 +3553,11 @@
           return false;
         }
         return true;
-      });
+      
+          if (pu.type === 'chargerefresh') { player.cooldowns.charge = 0; floatText('⚔️ CHARGE READY!', pu.x-camera.x-30, pu.y-camera.y-20, '#ff8844'); }
+          if (pu.type === 'extrajump')     { player._extraJumps = Math.min((player._extraJumps||0)+1, 1); floatText('🦅 EXTRA JUMP!', pu.x-camera.x-30, pu.y-camera.y-20, '#88aaff'); }
+          return true;
+        });
 
       const ld = getLevelData();
       for (const qb of ld.qblocks) { if (qb.bumpTimer > 0) qb.bumpTimer--; }
@@ -3285,6 +3579,44 @@
         ctx.font = '18px serif'; ctx.textAlign = 'center';
         ctx.fillText(puIcons2[pu.type]||'?', pu.x+14, pu.y+20+bob2);
         ctx.textAlign = 'left';
+      }
+
+      // Floating powerups (from qblocks)
+      for (const pu of powerups) {
+        if (pu.x + 24 < camera.x - 20 || pu.x > camera.x + W + 20) continue;
+        const puColors = { rapid:'#ff4488', big:'#44ffcc', bomb:'#ff8800', drum:'#ff4400', invincible:'#ffd700', chargerefresh:'#ff8844', extrajump:'#88aaff' };
+        const puIcons  = { rapid:'⚡', big:'🎵', bomb:'💣', drum:'🥁', invincible:'🏆', chargerefresh:'⚔️', extrajump:'🪶' };
+        const col = puColors[pu.type]||'#f5c518';
+        // Glow box
+        ctx.fillStyle = col; ctx.globalAlpha = 0.25;
+        ctx.fillRect(pu.x - 2, pu.y - 2, 28, 28);
+        ctx.globalAlpha = 1;
+        // Coloured border
+        ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.strokeRect(pu.x, pu.y, 24, 24); ctx.lineWidth = 1;
+        // Icon
+        ctx.font = '14px serif'; ctx.textAlign = 'center';
+        ctx.fillText(puIcons[pu.type]||'★', pu.x+12, pu.y+17);
+        ctx.textAlign = 'left';
+      }
+
+      // Spirit Embers (3 per level collectibles)
+      for (const em of (ld.spiritEmbers||[])) {
+        if (em.collected) continue;
+        if (em.x+20<camera.x-20||em.x>camera.x+W+20) continue;
+        const pulse = 0.7 + Math.sin(frameCount*0.12+em.x*.01)*0.3;
+        const eb = Math.sin(frameCount*0.08+em.x*.01)*3;
+        // Glow
+        const eg=ctx.createRadialGradient(em.x+10,em.y+10+eb,0,em.x+10,em.y+10+eb,18);
+        eg.addColorStop(0,'rgba(255,140,20,0.6)'); eg.addColorStop(1,'transparent');
+        ctx.fillStyle=eg; ctx.fillRect(em.x-8,em.y-8+eb,36,36);
+        // Ember sprite
+        ctx.save(); ctx.translate(em.x+10,em.y+10+eb); ctx.rotate(frameCount*0.03);
+        ctx.font='18px serif'; ctx.textAlign='center'; ctx.fillText('🔥',0,6);
+        ctx.restore();
+        // Ember number badge
+        ctx.font='5px "Press Start 2P"'; ctx.fillStyle='#ff8820'; ctx.textAlign='center';
+        ctx.fillText((em.idx||0)+1+'★', em.x+10, em.y-4+eb); ctx.textAlign='left';
       }
 
       // Trophies (invincibility pickups)
@@ -3565,6 +3897,26 @@
     }
 
 
+    function updateEmbers() {
+      const ld = getLevelData(); if(!ld) return;
+      for (const em of (ld.spiritEmbers||[])) {
+        if (em.collected) continue;
+        if (overlap(player.x, player.y, PW, PH, em.x, em.y, 20, 20)) {
+          em.collected = true;
+          sfx('ember');
+          spawnPart(em.x+10, em.y+10, '#ff8820', 18, 4, 0.2, 'star');
+          spawnRing(em.x+10, em.y+10, '#ffaa44', 10, 22, 2);
+          floatText('🔥 SPIRIT EMBER '+(em.idx+1)+'!', em.x-camera.x-40, em.y-camera.y-25, '#ff8820');
+          score += 500; updateHUD();
+          // Update ember HUD counter
+          const total=(ld.spiritEmbers||[]).length;
+          const got=(ld.spiritEmbers||[]).filter(e=>e.collected).length;
+          const el=document.getElementById('hud-embers');
+          if(el) el.textContent='🔥 '+got+'/'+total;
+        }
+      }
+    }
+
     function updatePowerupItems() {
       const ld = getLevelData();
       if (!ld || !ld.powerupItems) return;
@@ -3727,7 +4079,8 @@
         // Skip special terrain types — they have their own drawing loops
         if (p.type && p.type !== 'ground') continue;
         if (p.x + p.w < camera.x - 20 || p.x > camera.x + W + 20) continue;
-        const platC = ld.platColors||['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'];
+        const platC = p.colors||(ld.platColors||['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840']);
+        if (p.rotation) { ctx.save(); const pcx=p.x+p.w/2,pcy=p.y+p.h/2; ctx.translate(pcx,pcy); ctx.rotate(p.rotation*Math.PI/180); ctx.translate(-pcx,-pcy); }
       ctx.fillStyle = p.h > 30 ? platC[0] : platC[1]; ctx.fillRect(p.x, p.y, p.w, p.h);
         for (let y2 = p.y + 6; y2 < p.y + p.h; y2 += 14) {
           for (let x2 = p.x; x2 < p.x + p.w; x2 += 20) {
@@ -3747,6 +4100,7 @@
           ctx.fillStyle = ld.accentColor||'#5a2080'; ctx.fillRect(tx - 3, p.y - 12, 8, 5);
           ctx.fillStyle = ld.accentColor2||'#d460ff'; ctx.fillRect(tx - 1, p.y - 14, 4, 3);
         }
+        if (p.rotation) ctx.restore();
       }
 
       // Moving platforms
@@ -3983,6 +4337,31 @@
         ctx.font = 'bold 9px monospace'; ctx.fillText('CASTLE', ax - 70, ay + 4); ctx.globalAlpha = 1;
       }
 
+      // Coin blocks (cblocks)
+      for (const cb of (ld.cblocks||[])) {
+        const bx = cb.x, by = cb.y - (cb.bumpTimer>0?Math.sin(cb.bumpTimer/10*Math.PI)*8:0);
+        if (bx+28<camera.x-20||bx>camera.x+W+20) continue;
+        const empty=(cb.hits||0)<=0;
+        ctx.fillStyle=empty?'#888':'#c87820'; ctx.fillRect(bx,by,28,28);
+        ctx.fillStyle=empty?'#aaa':'#f5a840'; ctx.fillRect(bx+2,by+2,24,24);
+        ctx.fillStyle=empty?'#666':'#7a3800';
+        ctx.font='bold 14px "Press Start 2P"'; ctx.textAlign='center';
+        ctx.fillText(empty?'○':'🪙',bx+14,by+20); ctx.textAlign='left';
+        if(cb.bumpTimer>0) cb.bumpTimer--;
+      }
+
+      // QBlocks (item blocks)
+      for (const qb of ld.qblocks) {
+        const bx = qb.x, by = qb.y - (qb.bumpTimer > 0 ? Math.sin(qb.bumpTimer / 10 * Math.PI) * 8 : 0);
+        if (bx+28<camera.x-20||bx>camera.x+W+20) continue;
+        ctx.fillStyle = qb.hit ? '#888' : '#c8a820'; ctx.fillRect(bx, by, 28, 28);
+        ctx.fillStyle = qb.hit ? '#aaa' : '#f5d640'; ctx.fillRect(bx+2, by+2, 24, 24);
+        ctx.fillStyle = qb.hit ? '#555' : '#8b5800';
+        ctx.font = 'bold 16px "Press Start 2P"'; ctx.textAlign = 'center';
+        ctx.fillText(qb.hit?'○':'?', bx+14, by+20); ctx.textAlign = 'left';
+        if (qb.bumpTimer > 0) qb.bumpTimer--;
+      }
+
       for (const c of collectibles) {
         if (c.collected || c.x + 16 < camera.x - 20 || c.x > camera.x + W + 20) continue;
         const bob2 = Math.sin(frameCount * .08 + c.x * .02) * 2;
@@ -4006,6 +4385,44 @@
         ctx.font = '18px serif'; ctx.textAlign = 'center';
         ctx.fillText(puIcons2[pu.type]||'?', pu.x+14, pu.y+20+bob2);
         ctx.textAlign = 'left';
+      }
+
+      // Floating powerups (from qblocks)
+      for (const pu of powerups) {
+        if (pu.x + 24 < camera.x - 20 || pu.x > camera.x + W + 20) continue;
+        const puColors = { rapid:'#ff4488', big:'#44ffcc', bomb:'#ff8800', drum:'#ff4400', invincible:'#ffd700', chargerefresh:'#ff8844', extrajump:'#88aaff' };
+        const puIcons  = { rapid:'⚡', big:'🎵', bomb:'💣', drum:'🥁', invincible:'🏆', chargerefresh:'⚔️', extrajump:'🪶' };
+        const col = puColors[pu.type]||'#f5c518';
+        // Glow box
+        ctx.fillStyle = col; ctx.globalAlpha = 0.25;
+        ctx.fillRect(pu.x - 2, pu.y - 2, 28, 28);
+        ctx.globalAlpha = 1;
+        // Coloured border
+        ctx.strokeStyle = col; ctx.lineWidth = 2;
+        ctx.strokeRect(pu.x, pu.y, 24, 24); ctx.lineWidth = 1;
+        // Icon
+        ctx.font = '14px serif'; ctx.textAlign = 'center';
+        ctx.fillText(puIcons[pu.type]||'★', pu.x+12, pu.y+17);
+        ctx.textAlign = 'left';
+      }
+
+      // Spirit Embers (3 per level collectibles)
+      for (const em of (ld.spiritEmbers||[])) {
+        if (em.collected) continue;
+        if (em.x+20<camera.x-20||em.x>camera.x+W+20) continue;
+        const pulse = 0.7 + Math.sin(frameCount*0.12+em.x*.01)*0.3;
+        const eb = Math.sin(frameCount*0.08+em.x*.01)*3;
+        // Glow
+        const eg=ctx.createRadialGradient(em.x+10,em.y+10+eb,0,em.x+10,em.y+10+eb,18);
+        eg.addColorStop(0,'rgba(255,140,20,0.6)'); eg.addColorStop(1,'transparent');
+        ctx.fillStyle=eg; ctx.fillRect(em.x-8,em.y-8+eb,36,36);
+        // Ember sprite
+        ctx.save(); ctx.translate(em.x+10,em.y+10+eb); ctx.rotate(frameCount*0.03);
+        ctx.font='18px serif'; ctx.textAlign='center'; ctx.fillText('🔥',0,6);
+        ctx.restore();
+        // Ember number badge
+        ctx.font='5px "Press Start 2P"'; ctx.fillStyle='#ff8820'; ctx.textAlign='center';
+        ctx.fillText((em.idx||0)+1+'★', em.x+10, em.y-4+eb); ctx.textAlign='left';
       }
 
       // Trophies (invincibility pickups)
@@ -4241,7 +4658,7 @@
           GS = 'gameover'; stopMusic();
           document.getElementById('go-score').textContent = score; document.getElementById('s-gameover').classList.add('active');
         }
-        updateSpecialPlats(getLevelData()); updateCheckpoints(); updateTrophies(); updatePowerupItems(); checkGoal(); updateHUD(); frameCount++;
+        updateSpecialPlats(getLevelData()); updateCheckpoints(); updateTrophies(); updateEmbers(); updatePowerupItems(); checkGoal(); updateHUD(); frameCount++;
         if (frameCount % 30 === 0) {
           updateHUDKeys();
           const gpEl = document.getElementById('gp-indicator');
@@ -4294,7 +4711,7 @@
       undoStack:[], SNAP:16, SIDEBAR:66, theme:'highland',
       _hoverObj:null, _moveObj:null, _moveDragStart:null, _moveObjStart:null,
       _resizeCorner:null, _resizeObj:null, _resizeObjStart:null,
-      _spikeRotation:0, _bounceRotation:0,
+      _spikeRotation:0, _bounceRotation:0, _rotatingObj:null, _rotStartAngle:0,
 
       newLevel() {
         this.undoStack=[];this.scrollX=0;this.theme='highland';
@@ -4313,6 +4730,16 @@
         this.levelData.width=Math.max(900,Math.min(8000,w));
         this.levelData.platforms[0].w=this.levelData.width;
       },
+      setHeight(h_){
+        if(!this.levelData)return;
+        this.levelData.height=Math.max(560,Math.min(2000,h_));
+        this.updateInfo();
+      },
+      setMusic(track){
+        if(!this.levelData)return;
+        this.levelData.music=track||null;
+        this.showInfo(track?'MUSIC: '+track:'MUSIC: Auto');
+      },
       setTheme(t) {
         if(!this.levelData)return;this.theme=t;
         const[bg,stars,mist]=THEMES_BG[t]||THEMES_BG.highland;
@@ -4322,7 +4749,7 @@
         Object.assign(this.levelData,extras[t]||{});
       },
       snap(v){return Math.round(v/this.SNAP)*this.SNAP;},
-      canvasToWorld(cx,cy){return{x:this.snap(cx-this.SIDEBAR+this.scrollX),y:this.snap(cy)};},
+      canvasToWorld(cx,cy){return{x:this.snap(cx-this.SIDEBAR+this.scrollX),y:this.snap(cy+(this.scrollY||0))};},
       saveState(){this.undoStack.push(JSON.stringify(this.levelData));if(this.undoStack.length>30)this.undoStack.shift();},
       undo(){if(this.undoStack.length){this.levelData=JSON.parse(this.undoStack.pop());this.updateInfo();}},
       deleteAt(wx,wy) {
@@ -4347,6 +4774,7 @@
         ld.enemies=ld.enemies.filter(e=>Math.abs(e.x-wx)>r||Math.abs(e.y-wy)>r);
         if(ld.cblocks)ld.cblocks=ld.cblocks.filter(cb=>Math.abs(cb.x+14-wx)>r||Math.abs(cb.y+14-wy)>r);
         if(ld.trophies)ld.trophies=ld.trophies.filter(t=>Math.abs(t.x+12-wx)>r||Math.abs(t.y+12-wy)>r);
+        if(ld.spiritEmbers)ld.spiritEmbers=ld.spiritEmbers.filter(e=>Math.abs(e.x+10-wx)>r||Math.abs(e.y+10-wy)>r).map((e,i)=>({...e,idx:i}));
         if(ld.powerupItems)ld.powerupItems=ld.powerupItems.filter(p=>Math.abs(p.x+14-wx)>r||Math.abs(p.y+14-wy)>r);
         if(ld.spikes)ld.spikes=ld.spikes.filter(sp=>wx<sp.x||wx>sp.x+(sp.w||40)||wy<sp.y||wy>sp.y+(sp.h||20));
         if(ld.checkpoints)ld.checkpoints=ld.checkpoints.filter(cp=>Math.abs(cp.x-wx)>r||Math.abs(cp.y-wy)>r*2);
@@ -4374,6 +4802,11 @@
         } else if(this.tool==='trophy'){
           if(!this.levelData.trophies)this.levelData.trophies=[];
           this.levelData.trophies.push({x:wx,y:wy,collected:false});
+        } else if(this.tool==='ember'){
+          if(!this.levelData.spiritEmbers)this.levelData.spiritEmbers=[];
+          if(this.levelData.spiritEmbers.length>=3){this.showInfo('MAX 3 SPIRIT EMBERS PER LEVEL');return;}
+          const idx=this.levelData.spiritEmbers.length;
+          this.levelData.spiritEmbers.push({x:wx,y:wy,collected:false,idx:idx});
         } else if(this.tool.startsWith('pu-')){
           const puT=this.tool.slice(3);
           if(!this.levelData.powerupItems)this.levelData.powerupItems=[];
@@ -4479,6 +4912,9 @@
         // Sync color pickers to current level palette
         const pc = this.levelData?.platColors||['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'];
         for(let i=0;i<5;i++){const el=document.getElementById('bl-col'+i);if(el&&pc[i])el.value=pc[i];}
+        const bh=document.getElementById('bl-height'); if(bh) bh.value=this.levelData?.height||560;
+        const bm=document.getElementById('bl-music'); if(bm) bm.value=this.levelData?.music||'';
+        const bww=document.getElementById('bl-width'); if(bww) bww.value=this.levelData?.width||3200;
 
         const el=document.getElementById('builder-info');if(!el||!this.levelData)return;
         const ld=this.levelData;
@@ -4535,6 +4971,43 @@
       endResize() {
         if(!this._resizeObj) return;
         this._resizeObj=null; this._resizeObjStart=null; this._moveDragStart=null;
+        this.updateInfo();
+      },
+
+      getRotHandleAt(wx,wy) {
+        const ld=this.levelData; if(!ld) return null;
+        const R=10, OUTER=22;
+        const check=(arr,getRect)=>{
+          for(const obj of (arr||[])){
+            const r=getRect(obj);
+            const corners=[[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]];
+            for(const[cx,cy] of corners){
+              const d=Math.hypot(wx-cx,wy-cy);
+              if(d>=R&&d<=OUTER) return obj;
+            }
+          }
+          return null;
+        };
+        return check(ld.platforms,p=>({x:p.x,y:p.y,w:p.w||80,h:p.h||18}))
+            || check(ld.bounces,  b=>({x:b.x,y:b.y,w:b.w||50,h:b.h||14}))
+            || check(ld.spikes,   s=>({x:s.x,y:s.y,w:s.w||40,h:s.h||20}))
+            || check(ld.icePlats, i=>({x:i.x,y:i.y,w:i.w||55,h:i.h||18}))
+            || check(ld.movingPlats,m=>({x:m._cx||m.x,y:m._cy||m.y,w:m.w||60,h:m.h||14}));
+      },
+
+      startRotate(obj, wx, wy) {
+        const cx=(obj.x||0)+(obj.w||50)/2, cy=(obj.y||0)+(obj.h||18)/2;
+        this._rotatingObj=obj;
+        this._rotCX=cx; this._rotCY=cy;
+        this._rotStartAngle=Math.atan2(wy-cy,wx-cx)*180/Math.PI-(obj.rotation||0);
+        this.saveState();
+      },
+
+      updateRotate(wx, wy) {
+        const obj=this._rotatingObj; if(!obj) return;
+        let angle=Math.atan2(wy-this._rotCY,wx-this._rotCX)*180/Math.PI-this._rotStartAngle;
+        angle=((Math.round(angle)%360)+360)%360;
+        obj.rotation=angle;
         this.updateInfo();
       },
 
@@ -4641,10 +5114,20 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
 
       updatePlatColor(idx, val) {
         if(!this.levelData) return;
-        if(!this.levelData.platColors||!Array.isArray(this.levelData.platColors)) {
-          this.levelData.platColors=['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'];
+        const ho = this._hoverObj;
+        if (ho && ho.obj && ho.type === 'platform') {
+          // Color only the selected platform
+          if (!ho.obj.colors) ho.obj.colors = [...(this.levelData.platColors||['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'])];
+          ho.obj.colors[idx] = val;
+          this.showInfo('PLATFORM COLOR CHANGED');
+        } else {
+          // No selection: apply to level palette (affects newly placed platforms)
+          if(!this.levelData.platColors||!Array.isArray(this.levelData.platColors)) {
+            this.levelData.platColors=['#1a3010','#243a18','#3a7a28','#4a9a32','#5ab840'];
+          }
+          this.levelData.platColors[idx] = val;
+          this.showInfo('PALETTE COLOR CHANGED (affects new terrain)');
         }
-        this.levelData.platColors[idx] = val;
       },
 
       showInfo(msg) {
@@ -4720,7 +5203,7 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
       drawScene() {
         const ld=this.levelData; if(!ld) return;
         initSpecialPlats(ld); // keep switch/crumble state fresh for preview
-        const SB=this.SIDEBAR, sx=this.scrollX;
+        const SB=this.SIDEBAR, sx=this.scrollX, sy=this.scrollY||0;
 
         // ── Background ───────────────────────────────────────
         const bg=ld.bgColors||['#0d1b35','#1a3050'];
@@ -4730,13 +5213,13 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
 
         // ── World-space drawing (inside translation) ─────────
         ctx.save();
-        ctx.translate(SB-sx, 0);
+        ctx.translate(SB-sx, -sy);
 
         // Grid
         ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
         const gx0=Math.floor(sx/32)*32;
         for(let gx=gx0;gx<sx+W;gx+=32){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke();}
-        for(let gy=0;gy<H;gy+=32){ctx.beginPath();ctx.moveTo(sx,gy);ctx.lineTo(sx+W,gy);ctx.stroke();}
+        for(let gy=Math.floor(sy/32)*32;gy<sy+H;gy+=32){ctx.beginPath();ctx.moveTo(sx,gy);ctx.lineTo(sx+W,gy);ctx.stroke();}
 
         // Void floor
         if(ld.voidFloor){
@@ -4913,10 +5396,17 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
         }
 
         // Placed powerup items
-        const puIBLD={rapid:'⚡',big:'🎵',bomb:'💣',drum:'🥁',invincible:'🏆'};
+        const puIBLD={rapid:'⚡',big:'🎵',bomb:'💣',drum:'🥁',invincible:'🏆',chargerefresh:'⚔️',extrajump:'🪶'};
         for(const pu of (ld.powerupItems||[])){
           ctx.font='18px serif';ctx.textAlign='center';ctx.fillText(puIBLD[pu.type]||'?',pu.x+14,pu.y+20);ctx.textAlign='left';
           ctx.font='5px "Press Start 2P"';ctx.fillStyle='#f5c518';ctx.textAlign='center';ctx.fillText(pu.type.toUpperCase(),pu.x+14,pu.y-3);ctx.textAlign='left';
+        }
+        // Spirit Embers
+        for(const em of (ld.spiritEmbers||[])){
+          ctx.font='16px serif'; ctx.textAlign='center';
+          ctx.fillText('🔥',em.x+10,em.y+16); ctx.textAlign='left';
+          ctx.font='5px "Press Start 2P"'; ctx.fillStyle='#ff8820'; ctx.textAlign='center';
+          ctx.fillText('#'+(em.idx+1),em.x+10,em.y-2); ctx.textAlign='left';
         }
         // Trophies
         for(const t of (ld.trophies||[])){
@@ -4973,14 +5463,18 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
           ctx.globalAlpha=1; ctx.lineWidth=1;
         }
 
-        // ── Hover / resize corner highlight ──────────────────
+        // ── Hover / resize corner highlight (rotated with object) ──
         const ho=this._hoverObj;
         if(ho&&ho.obj&&this.tool!=='delete'){
           const o=ho.obj, hx=o.x||0, hy=o.y||0, hw=o.w||32, hh=o.h||32;
+          const hRot=(o.rotation||0)*Math.PI/180;
+          const hcx=hx+hw/2, hcy=hy+hh/2;
+          ctx.save();
+          if(hRot){ ctx.translate(hcx,hcy); ctx.rotate(hRot); ctx.translate(-hcx,-hcy); }
           ctx.globalAlpha=0.35+Math.sin(frameCount*0.15)*0.1;
           ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.setLineDash([4,3]);
           ctx.strokeRect(hx-2,hy-2,hw+4,hh+4); ctx.setLineDash([]); ctx.globalAlpha=1; ctx.lineWidth=1;
-          // Corner handles (only for resizable types)
+          // Corner handles
           if(['platform','icePlat','bounce'].includes(ho.type)){
             const corners=[[hx,hy],[hx+hw,hy],[hx,hy+hh],[hx+hw,hy+hh]];
             for(const[cx2,cy2]of corners){
@@ -4988,9 +5482,19 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
               ctx.strokeStyle='#fff'; ctx.lineWidth=1; ctx.strokeRect(cx2-4,cy2-4,8,8);
             }
           }
+          // Rotation handle dots at corners
+          [[hx,hy],[hx+hw,hy],[hx+hw,hy+hh],[hx,hy+hh]].forEach(([cx2,cy2])=>{
+            ctx.fillStyle='#ffaa00'; ctx.beginPath(); ctx.arc(cx2,cy2,5,0,Math.PI*2); ctx.fill();
+            ctx.strokeStyle='#ff6600'; ctx.lineWidth=1; ctx.stroke();
+          });
+          ctx.restore(); // un-rotate for text labels
           ctx.font='5px "Press Start 2P"';ctx.fillStyle='#fff';ctx.textAlign='center';
-          const modeLabel = this._resizeCorner!=null ? 'RESIZE' : 'MOVE';
-          ctx.fillText(modeLabel,hx+hw/2,hy-10); ctx.textAlign='left';
+          const modeLabel=this._resizeCorner!=null?'RESIZE':(this._rotatingObj===ho.obj?'ROTATE':'MOVE');
+          ctx.fillText(modeLabel,hcx,hcy-hh/2-12); ctx.textAlign='left';
+          if(o.rotation){
+            ctx.fillStyle='#ffaa00'; ctx.textAlign='center';
+            ctx.fillText(o.rotation+'°', hcx, hcy-hh/2-22); ctx.textAlign='left';
+          }
         }
 
         ctx.restore();  // ← restore from translate
@@ -5035,6 +5539,9 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
       if(BLD.tool==='delete'){ BLD.saveState(); BLD.deleteAt(wx,wy); BLD.updateInfo(); return; }
       // Check if clicking an existing object — if so, start move
       // Check corner first (resize), then object (move)
+      // Check rotation handle first
+      const rotH = BLD.getRotHandleAt(wx,wy);
+      if (rotH) { BLD.startRotate(rotH, wx, wy); return; }
       const corner=BLD.getCornerAt(wx,wy);
       if(corner){ BLD.saveState(); BLD.startResize(corner,wx,wy); return; }
       const hit=BLD.getObjAt(wx,wy);
@@ -5052,6 +5559,7 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
       const{x:wx,y:wy}=BLD.canvasToWorld(cx,cy);
       BLD._lastMx=cx; BLD._lastMy=cy;
       // Active resize
+      if(BLD._rotatingObj){ BLD.updateRotate(wx,wy); return; }
       if(BLD._resizeObj){ BLD.updateResize(wx,wy); return; }
       // Active move
       if(BLD._moveObj){ BLD.updateMove(wx,wy); return; }
@@ -5059,6 +5567,8 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
       if(BLD.isDragging){ BLD.updateDrag(cx,cy); return; }
       // Hover: check corners first, then object
       if(cx>=BLD.SIDEBAR){
+        const rotH2=BLD.getRotHandleAt(wx,wy);
+        if(rotH2){ canvas.style.cursor='crosshair'; return; }
         const corner=BLD.getCornerAt(wx,wy);
         if(corner){ BLD._hoverObj=corner; BLD._resizeCorner=corner.corner; canvas.style.cursor='nwse-resize'; return; }
         BLD._resizeCorner=null;
@@ -5069,6 +5579,7 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
     canvas.addEventListener('mouseup',e=>{
       if(GS!=='builder')return;
       const rect=canvas.getBoundingClientRect();
+      BLD._rotatingObj=null;
       BLD.endResize();
       BLD.endMove();
       BLD.endDrag((e.clientX-rect.left)*(canvas.width/rect.width),(e.clientY-rect.top)*(canvas.height/rect.height));
@@ -5082,7 +5593,8 @@ if(ld.powerupItems) for(let i=ld.powerupItems.length-1;i>=0;i--){ const pu=ld.po
     });
     canvas.addEventListener('wheel',e=>{
       if(GS!=='builder')return;e.preventDefault();
-      BLD.scrollX=Math.max(0,Math.min((BLD.levelData?BLD.levelData.width-(W-BLD.SIDEBAR):0),BLD.scrollX+e.deltaX+e.deltaY*0.5));
+      BLD.scrollX=Math.max(0,Math.min((BLD.levelData?BLD.levelData.width-(W-BLD.SIDEBAR):0),BLD.scrollX+(e.shiftKey?e.deltaY:e.deltaX)));
+      BLD.scrollY=Math.max(0,Math.min((BLD.levelData?.height||560)-H+100,(BLD.scrollY||0)+(e.shiftKey?0:e.deltaY)*0.8));
     },{passive:false});
 
     function updateHUD() {
