@@ -9979,6 +9979,12 @@
       }
       updateHUD();
       switchMusicForLevel();
+
+      // A level flagged `mode3d` starts directly in the 3D platformer (the
+      // Highland Prism world). Falls back to plain 2D if WebGL/Three failed.
+      if (ld.mode3d && window.ThreeMode && !window.ThreeMode.isFailed()) {
+        window.ThreeMode.enter();
+      }
     }
 
     function overlap(ax, ay, aw, ah, bx, by, bw, bh) {

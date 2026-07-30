@@ -351,6 +351,26 @@ function tickEnemies3D() {
   }
 }
 
+// Coins in 3D are collected by generous 3D proximity (the tight 2D overlap the
+// flat game uses is too fiddly for arcing 3D jumps). Marks the coin collected +
+// pays out; index.html's updateHUD() then reflects the new totals.
+function collect3DCoins() {
+  const cols = window.collectibles || [];
+  const pcx = p3.x, pcy = p3.y + P_HEIGHT / 2, pcz = p3.z;
+  for (const c of cols) {
+    if (c.collected || (c.type && c.type !== 'coin')) continue;
+    const cx = c.x + 8, cy = -(c.y + 8);
+    const dx = pcx - cx, dy = pcy - cy, dz = pcz - 0;
+    if (dx * dx + dy * dy + dz * dz < 46 * 46) {
+      c.collected = true;
+      try { window.coins = (window.coins | 0) + 1; } catch (e) {}
+      try { window.score = (window.score | 0) + 30; } catch (e) {}
+      try { if (window.GameStats) window.GameStats.recordCoin(); } catch (e) {}
+      try { if (window.sfx) window.sfx('coin'); } catch (e) {}
+    }
+  }
+}
+
 // ── player controller (camera-relative move + chase-cam follow) ─────────────
 function tickController() {
   const player = window.player;
@@ -484,7 +504,7 @@ const ThreeMode = {
     }
 
     tickController();
-    if (mode === '3d' || mode === 'entering') tickEnemies3D();
+    if (mode === '3d' || mode === 'entering') { tickEnemies3D(); collect3DCoins(); }
 
     if (window.player && window.player.hp <= 0 && mode !== 'exiting') { this.reset(); return; }
 
