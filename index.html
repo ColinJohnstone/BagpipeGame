@@ -14754,6 +14754,15 @@
         else window.ThreeMode.enter();
         return;
       }
+      // ── 3D mode: Esc / P open the pause menu ──
+      // The normal pause path runs inside updatePlayer via kPress('pause'),
+      // which the 3D tick bypasses — so wire the pause key here directly.
+      if ((code === 'Escape' || code === 'KeyP') && GS === 'playing'
+          && window.ThreeMode && window.ThreeMode.isControlling()) {
+        e.preventDefault();
+        if (typeof UI !== 'undefined' && UI.pause) UI.pause();
+        return;
+      }
       // Space on the game-over screen acts as "TRY AGAIN" so dying + retrying is one keystroke
       if (code === 'Space' && GS === 'gameover') {
         const go = document.getElementById('s-gameover');

@@ -170,7 +170,10 @@ function showThreeHint() {
         + "font-family:'Press Start 2P',monospace;font-size:8px;line-height:1.7;color:#eaf2ff;text-align:center;"
         + 'background:rgba(10,14,30,0.66);border:1px solid rgba(150,180,255,0.4);border-radius:10px;'
         + 'padding:9px 14px;pointer-events:none;transition:opacity .6s ease;backdrop-filter:blur(4px);';
-      el.innerHTML = '💠 3D MODE<br>WASD MOVE · SPACE JUMP<br>ARROWS / DRAG — CAMERA';
+      el.innerHTML = '💠 3D MODE'
+        + '<br>WASD MOVE · SPACE JUMP · ESC PAUSE'
+        + '<br>Q SHOOT · E CHARGE · F SKIRL · R DRONE'
+        + '<br>ARROWS / MOUSE (CLICK TO LOOK) — CAMERA';
       wrap.appendChild(el);
     }
     el.style.display = '';
@@ -206,7 +209,7 @@ function ensureInit(W, H) {
     const rim = new THREE.DirectionalLight(0xa8c8ff, 0.7); rim.position.set(420, 200, -340); scene.add(rim);
     const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(120, 120, 520); scene.add(fill);
 
-    three = { platGroup: new THREE.Group(), coins: [], enemies: [], player: null, shadow: null };
+    three = { platGroup: new THREE.Group(), coins: [], enemies: [], notes: [], player: null, shadow: null, skirlRing: null };
     scene.add(three.platGroup);
 
     // 3D piper.
@@ -219,6 +222,12 @@ function ensureInit(W, H) {
       new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2; shadow.renderOrder = 5;
     scene.add(shadow); three.shadow = shadow;
+
+    // Skirl-blast shockwave ring (lies flat, expands + fades on use).
+    const ring = new THREE.Mesh(new THREE.RingGeometry(12, 18, 30),
+      new THREE.MeshBasicMaterial({ color: 0x9fe0ff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.renderOrder = 6; ring.visible = false;
+    scene.add(ring); three.skirlRing = ring;
 
     attachCameraControls(cv);
     inited = true;
@@ -236,14 +245,27 @@ function attachCameraControls(cv) {
   // matter which element ends up topmost — the earlier canvas-only listener
   // could be starved of events. Skip drags that start on UI (HUD, buttons).
   const onUI = (t) => t && t.closest && t.closest('button, input, #hud, #touch-ctrl, .screen');
-  const down = (e) => { if (mode === '2d' || onUI(e.target)) return; drag = { x: e.clientX, y: e.clientY }; };
+  const locked = () => document.pointerLockElement === cv;
+  // Click once to capture the mouse → free look (no button held). Esc / pause
+  // releases it. Drag still works as a fallback if lock is unavailable/denied.
+  const down = (e) => {
+    if (mode === '2d' || onUI(e.target)) return;
+    if (!locked()) { try { cv.requestPointerLock(); } catch (err) {} }
+    drag = { x: e.clientX, y: e.clientY };
+  };
   const move = (e) => {
-    if (!drag) return;
-    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    drag.x = e.clientX; drag.y = e.clientY;
-    cam.yaw -= dx * 0.007;
-    cam.el = Math.max(CAM.minEl, Math.min(CAM.maxEl, cam.el - dy * 0.005));
-    camDragCd = 110;   // suppress auto-follow briefly after a manual look
+    if (mode === '2d') return;
+    if (locked()) {
+      cam.yaw -= (e.movementX || 0) * 0.0035;
+      cam.el = Math.max(CAM.minEl, Math.min(CAM.maxEl, cam.el - (e.movementY || 0) * 0.003));
+      camDragCd = 110;
+    } else if (drag) {
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      drag.x = e.clientX; drag.y = e.clientY;
+      cam.yaw -= dx * 0.007;
+      cam.el = Math.max(CAM.minEl, Math.min(CAM.maxEl, cam.el - dy * 0.005));
+      camDragCd = 110;
+    }
   };
   const up = () => { drag = null; };
   window.addEventListener('pointerdown', down);
@@ -308,6 +330,12 @@ function acquireCoin() {
   const geo = new THREE.CylinderGeometry(9, 9, 3, 18);
   const m = new THREE.MeshStandardMaterial({ color: 0xf5c518, metalness: 0.7, roughness: 0.25, emissive: 0x5a4600, emissiveIntensity: 0.45 });
   const mesh = new THREE.Mesh(geo, m); mesh.rotation.x = Math.PI / 2; scene.add(mesh);
+  return { mesh };
+}
+function acquireNote() {
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(6, 10, 10),
+    new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  mesh.renderOrder = 8; scene.add(mesh);
   return { mesh };
 }
 
@@ -397,6 +425,82 @@ function collect3DCoins() {
   }
 }
 
+// ── 3D combat abilities ─────────────────────────────────────────────────────
+// The 2D abilities live in updatePlayer (bypassed in 3D), so 3D gets its own
+// lightweight versions: fire note projectiles forward, dash, and a skirl AOE.
+let notes3d = [];                 // {x,y,z,vx,vy,vz,life,col}
+let shootCd = 0, dashCd = 0, skirlCd = 0;
+let skirlFx = 0;                  // expanding-ring visual timer
+
+function noteColor() {
+  try { if (typeof window.pickNoteColor === 'function') { const c = window.pickNoteColor(); if (c) return c; } } catch (e) {}
+  const h = ((window.frameCount | 0) * 11) % 360;
+  return 'hsl(' + h + ',90%,62%)';
+}
+
+function fireNote(angleOffset) {
+  const yaw = p3.yaw + (angleOffset || 0);
+  const fx = Math.sin(yaw), fz = Math.cos(yaw), spd = 12;
+  notes3d.push({ x: p3.x + fx * 16, y: p3.y + 28, z: p3.z + fz * 16, vx: fx * spd, vy: 0, vz: fz * spd, life: 70, col: noteColor() });
+}
+
+function tickAbilities() {
+  const K = window.K || {}, JP = window.JP || {};
+  if (shootCd > 0) shootCd--; if (dashCd > 0) dashCd--; if (skirlCd > 0) skirlCd--;
+  if (skirlFx > 0) skirlFx -= 0.06;
+  const armed = warp > 0.5;
+
+  // Q — shoot notes (hold to auto-fire). R — drone (3-note spread).
+  if (armed && K['KeyR'] && shootCd <= 0) {
+    shootCd = 14; fireNote(0); fireNote(0.32); fireNote(-0.32);
+    try { if (window.sfx) window.sfx('shoot'); } catch (e) {}
+  } else if (armed && K['KeyQ'] && shootCd <= 0) {
+    shootCd = 9; fireNote(0);
+    try { if (window.sfx) window.sfx('shoot'); } catch (e) {}
+  }
+
+  // E — Highland Charge (forward dash).
+  if (armed && JP['KeyE'] && dashCd <= 0) {
+    dashCd = 42;
+    const fx = Math.sin(p3.yaw), fz = Math.cos(p3.yaw);
+    p3.vx += fx * 11; p3.vz += fz * 11;
+    try { if (window.sfx) window.sfx('charge'); } catch (e) {}
+  }
+
+  // F — Skirl Blast (radial shockwave).
+  if (armed && JP['KeyF'] && skirlCd <= 0) {
+    skirlCd = 38; skirlFx = 1;
+    for (const e of (window.enemies || [])) {
+      if (!e || e.dead || !e._p3) continue;
+      if (Math.hypot(e._p3.x - p3.x, e._p3.z - p3.z) < 100) {
+        e.hp = (typeof e.hp === 'number' ? e.hp : 1) - 2;
+        if (e.hp <= 0) { e.dead = true; killCredit(e); }
+      }
+    }
+    try { if (window.sfx) window.sfx('skirl'); } catch (e) {}
+  }
+
+  // Advance note projectiles + resolve enemy hits.
+  for (let i = notes3d.length - 1; i >= 0; i--) {
+    const n = notes3d[i];
+    n.x += n.vx; n.y += n.vy; n.z += n.vz; n.life--;
+    let done = n.life <= 0;
+    if (!done) {
+      for (const e of (window.enemies || [])) {
+        if (!e || e.dead || !e._p3) continue;
+        const s = e._p3, eh = e.h || 32;
+        if (Math.abs(n.x - s.x) < 22 && Math.abs(n.z - s.z) < 22 && n.y > s.y - 8 && n.y < s.y + eh + 8) {
+          e.hp = (typeof e.hp === 'number' ? e.hp : 1) - 1;
+          if (e.hp <= 0) { e.dead = true; killCredit(e); try { if (window.sfx) window.sfx('enemy_die'); } catch (_) {} }
+          else { try { if (window.sfx) window.sfx('hit'); } catch (_) {} }
+          done = true; break;
+        }
+      }
+    }
+    if (done) notes3d.splice(i, 1);
+  }
+}
+
 // ── player controller (camera-relative move + chase-cam follow) ─────────────
 function tickController() {
   const player = window.player;
@@ -410,10 +514,11 @@ function tickController() {
   //   CAMERA: arrow keys rotate/tilt, + Q/E spin, + mouse-drag, + wheel zoom
   const inF = (K['KeyW'] ? 1 : 0) - (K['KeyS'] ? 1 : 0);
   const inS = (K['KeyD'] ? 1 : 0) - (K['KeyA'] ? 1 : 0);
-  // Keyboard camera control (always works, no mouse required).
+  // Keyboard camera control (arrow keys; always works, no mouse required).
+  // Q/E/etc. are left free for the combat abilities.
   let camKey = false;
-  if (K['ArrowLeft'] || K['KeyQ']) { cam.yaw += 0.05; camKey = true; }
-  if (K['ArrowRight'] || K['KeyE']) { cam.yaw -= 0.05; camKey = true; }
+  if (K['ArrowLeft']) { cam.yaw += 0.05; camKey = true; }
+  if (K['ArrowRight']) { cam.yaw -= 0.05; camKey = true; }
   if (K['ArrowUp']) { cam.el = Math.min(CAM.maxEl, cam.el + 0.03); camKey = true; }
   if (K['ArrowDown']) { cam.el = Math.max(CAM.minEl, cam.el - 0.03); camKey = true; }
   if (camKey) camDragCd = 45;   // suppress auto-follow while steering the camera
@@ -524,7 +629,10 @@ const ThreeMode = {
 
   reset() {
     mode = '2d'; warp = 0; warpTarget = 0; drag = null; camDragCd = 0;
+    notes3d = []; shootCd = dashCd = skirlCd = 0; skirlFx = 0;
+    if (three && three.notes) three.notes.forEach(n => { n.mesh.visible = false; });
     try { (window.enemies || []).forEach(e => { if (e) e._p3 = null; }); } catch (err) {}
+    try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) {}
     const cv = document.getElementById('three-canvas');
     if (cv) { cv.style.display = 'none'; cv.style.pointerEvents = 'none'; }
     const gc = document.getElementById('gameCanvas');
@@ -544,7 +652,7 @@ const ThreeMode = {
     }
 
     tickController();
-    if (mode === '3d' || mode === 'entering') { tickEnemies3D(); collect3DCoins(); }
+    if (mode === '3d' || mode === 'entering') { tickEnemies3D(); tickAbilities(); collect3DCoins(); }
 
     if (window.player && window.player.hp <= 0 && mode !== 'exiting') { this.reset(); return; }
 
@@ -631,6 +739,24 @@ const ThreeMode = {
         em.sprite.rotation.set(0, Math.atan2(camera.position.x - ex, camera.position.z - ez), 0);
       } else em.sprite.visible = false;
     }
+
+    // Note projectiles.
+    while (three.notes.length < notes3d.length) three.notes.push(acquireNote());
+    for (let i = 0; i < three.notes.length; i++) {
+      const nm = three.notes[i].mesh;
+      if (i < notes3d.length) { const n = notes3d[i]; nm.visible = true; nm.position.set(n.x, n.y, n.z); try { nm.material.color.set(n.col); } catch (e) {} }
+      else nm.visible = false;
+    }
+
+    // Skirl shockwave ring.
+    const sr = three.skirlRing;
+    if (skirlFx > 0) {
+      sr.visible = true;
+      sr.position.set(p3.x, p3.y + 2, p3.z);
+      const s = 1 + (1 - skirlFx) * 8;
+      sr.scale.set(s, s, s);
+      sr.material.opacity = Math.max(0, skirlFx) * 0.7;
+    } else sr.visible = false;
 
     renderer.render(scene, camera);
   },
