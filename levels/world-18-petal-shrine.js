@@ -58,7 +58,7 @@
 
     // L2 PAGODA CLIMB — vertical climb with grapple hooks + berserkers
     base({
-      name: 'PETAL PAGODA CLIMB', width: 1800, height: 1000, voidY: 940, goalY: 100,
+      name: 'PETAL PAGODA CLIMB', width: 1800, height: 1000, voidY: 940, goalX: 690, goalY: 100,
       timePar: 280, timeGold: 200,
       platforms: [
         { x: 0,    y: 940, w: 1800, h: 60, type: 'ground' },

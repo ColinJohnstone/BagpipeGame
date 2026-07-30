@@ -9,7 +9,7 @@
 // Old caches are automatically deleted on activate.
 // ──────────────────────────────────────────────────────────────────
 
-const CACHE_VERSION = 'highlands-v3-171-051';
+const CACHE_VERSION = 'highlands-v4-3d-001';
 const CORE_ASSETS = [
   './',
   './index.html',
