@@ -1,0 +1,20 @@
+{
+  "name": "ascend-the-highlands",
+  "version": "2.0.0",
+  "private": true,
+  "description": "A pixel-art 2D (and now 3D) platformer where a Scottish piper ascends themed worlds. Pure browser game.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node test/test-generator.mjs && node test/test-physics.mjs && node test/test-wallet.mjs && node test/test-perks.mjs && node test/test-progression.mjs"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0",
+    "vite-plugin-static-copy": "^2.2.0"
+  },
+  "dependencies": {
+    "three": "^0.171.0"
+  }
+}

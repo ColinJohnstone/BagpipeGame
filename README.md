@@ -14,23 +14,32 @@ The game ships with **39 worlds** (~183 hand-built levels) across multiple galax
 
 ## ▶ Run it
 
-**Local server** (recommended — required for the `<script src>` modules + the MP3 tracks under `music/` to load reliably; also enables local edit mode):
+The game now uses a lightweight **[Vite](https://vitejs.dev/)** build step — it's still a pure static browser game (no server-side code), Vite just gives us a dev server with hot-reload, npm dependencies (like **Three.js** for 3D mode), and a minified production build.
+
+**First time — install dependencies:**
 
 ```bash
 cd path/to/BagpipeGame
-python3 -m http.server 8765
-# then visit http://localhost:8765/   (index.html loads automatically)
+npm install
 ```
 
-**Local file (`file://`):**
+**Develop (hot-reload dev server):**
 
 ```bash
-open index.html
+npm run dev
+# then visit the URL it prints (default http://localhost:8765/)
 ```
 
-This usually still works (the modules load via plain `<script src>` — not `type="module"` — so `file://` doesn't hit the strict-CORS rules ESM has). If a browser refuses to load `src/*.js` over `file://`, use the local server instead.
+**Build a production bundle (static files in `dist/`):**
 
-**GitHub Pages:** enable Pages on the `main` branch and the file works as the entry point. The local edit mode auto-disables on `*.github.io` so the hosted build is read-only.
+```bash
+npm run build      # outputs dist/  — copy that folder anywhere static
+npm run preview    # serve the built dist/ locally to sanity-check it
+```
+
+**GitHub Pages:** deploy the contents of `dist/` (e.g. via the `gh-pages` branch or an Actions workflow). The build uses a relative base (`base: './'`) so it works from a project subpath (`username.github.io/<repo>/`). The local edit mode auto-disables on `*.github.io` so the hosted build is read-only.
+
+> **No-build fallback:** the classic `<script src>` modules still work without Vite. Any static file server over the project root (e.g. `python3 -m http.server 8765`) will serve the game directly from `index.html` — handy for a quick look without `npm install`. `file://` may work too but browsers increasingly block local module loads, so a server is recommended.
 
 ---
 
