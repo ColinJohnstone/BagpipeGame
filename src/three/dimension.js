@@ -293,13 +293,19 @@ function buildLevel(ld) {
 
   for (const p of (ld.platforms || [])) {
     if (p.type && p.type !== 'ground') continue;
-    const geo = new THREE.BoxGeometry(p.w, p.h, DEPTH);
+    // Optional per-platform depth: zc = z-centre, zd = z half-depth. Default is
+    // the full walkable slab. Narrow/offset values make platforms that you can
+    // walk AROUND in 3D, or depth-staggered islands that only line up in 2D.
+    // (The flat 2D game ignores zc/zd entirely — everything is on the plane.)
+    const zc = (typeof p.zc === 'number') ? p.zc : 0;
+    const zd = (typeof p.zd === 'number') ? p.zd : HALF_D;
+    const geo = new THREE.BoxGeometry(p.w, p.h, zd * 2);
     const side = new THREE.MeshStandardMaterial({ color: faceCol, roughness: 0.85, metalness: 0.04 });
     const top = new THREE.MeshStandardMaterial({ color: topCol, roughness: 0.7, metalness: 0.04 });
     const mesh = new THREE.Mesh(geo, [side, side, top, side, side, side]);
-    mesh.position.set(p.x + p.w / 2, -(p.y + p.h / 2), 0);
+    mesh.position.set(p.x + p.w / 2, -(p.y + p.h / 2), zc);
     three.platGroup.add(mesh);
-    boxes.push({ x0: p.x, x1: p.x + p.w, y0: -(p.y + p.h), y1: -p.y, z0: -HALF_D, z1: HALF_D });
+    boxes.push({ x0: p.x, x1: p.x + p.w, y0: -(p.y + p.h), y1: -p.y, z0: zc - zd, z1: zc + zd });
   }
 
   const bg = (ld.bgColors && ld.bgColors.length) ? ld.bgColors : ['#0a1520', '#182535'];
@@ -607,6 +613,8 @@ function updatePiperModel() {
 const ThreeMode = {
   isActive() { return mode !== '2d' && !failed; },
   isControlling() { return (mode === '3d' || mode === 'entering' || mode === 'exiting') && !failed; },
+  // Mid-fold: index.html renders the live 2D scene underneath the crossfade.
+  isTransitioning() { return (mode === 'entering' || mode === 'exiting') && warp > 0.015 && warp < 0.985; },
   isFailed() { return failed; },
   is3D() { return mode === '3d'; },
 
@@ -668,8 +676,9 @@ const ThreeMode = {
 
     const cv = document.getElementById('three-canvas');
     const gc = document.getElementById('gameCanvas');
-    if (cv) { cv.style.display = ''; cv.style.pointerEvents = (mode === '2d' ? 'none' : 'auto'); }
-    if (gc) gc.style.opacity = String(1 - Math.min(1, warp * 1.8));
+    // Crossfade the two canvases through the swing: 3D fades in, 2D fades out.
+    if (cv) { cv.style.display = ''; cv.style.pointerEvents = (mode === '2d' ? 'none' : 'auto'); cv.style.opacity = String(Math.min(1, warp * 1.7)); }
+    if (gc) gc.style.opacity = String(Math.max(0, 1 - warp * 1.7));
 
     const ld = (typeof window.getLevelData === 'function') ? window.getLevelData() : null;
     if (!ld) return;
@@ -678,18 +687,25 @@ const ThreeMode = {
 
     const frame = window.frameCount | 0;
 
-    // Chase camera: eased target on the character, positioned behind cam.yaw.
+    // Seamless swing: blend between the flat, straight-on pose that MATCHES the
+    // 2D side view (warp 0) and the behind-the-piper 3D chase pose (warp 1), so
+    // entering/leaving 3D reads as the camera rotating around the world (which
+    // simultaneously extrudes/flattens) rather than a hard cut.
     cam.tx += (p3.x - cam.tx) * 0.16;
     cam.ty += ((p3.y + 34) - cam.ty) * 0.16;
     cam.tz += (p3.z - cam.tz) * 0.16;
-    const dist = cam.dist * (1 + (1 - warp) * 1.3);
-    const horiz = dist * Math.cos(cam.el);
+    const t = warp * warp * (3 - 2 * warp);           // smoothstep
+    const horiz = cam.dist * Math.cos(cam.el);
+    const bx = cam.tx - Math.sin(cam.yaw) * horiz;    // 3D behind-view position
+    const by = cam.ty + cam.dist * Math.sin(cam.el);
+    const bz = cam.tz - Math.cos(cam.yaw) * horiz;
+    const FLAT_Z = 520;                               // 2D straight-on distance (≈960px wide framing)
     camera.position.set(
-      cam.tx - Math.sin(cam.yaw) * horiz,
-      cam.ty + dist * Math.sin(cam.el) + (1 - warp) * 40,
-      cam.tz - Math.cos(cam.yaw) * horiz
+      cam.tx + (bx - cam.tx) * t,
+      cam.ty + (by - cam.ty) * t,
+      FLAT_Z + (bz - FLAT_Z) * t
     );
-    camera.lookAt(cam.tx, cam.ty + 10, cam.tz);
+    camera.lookAt(cam.tx, cam.ty + 10 * t, cam.tz * t);
 
     three.platGroup.scale.z = 0.05 + 0.95 * warp;
 

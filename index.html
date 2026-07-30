@@ -10681,6 +10681,27 @@
       }
     }
 
+    // ── Dimension rifts — auto-flip 2D↔3D when crossing a rift gate ──
+    // Level data: rifts: [{ x, dir:'to3d'|'to2d' }]. Crossing a gate forward
+    // triggers the seamless fold; stepping back before it re-arms the gate so
+    // back-and-forth traversal keeps working. Position is synced across the
+    // fold, so it's the same continuous space in both dimensions.
+    function checkDimensionRifts() {
+      const ld = getLevelData();
+      if (!ld || !ld.rifts || !ld.rifts.length || !window.ThreeMode || window.ThreeMode.isFailed()) return;
+      const px = player.x + PW / 2;
+      for (const r of ld.rifts) {
+        if (px >= r.x && !r._armed) {
+          r._armed = true;
+          const to3d = (r.dir === 'to3d' || r.dir === '3d');
+          if (to3d && !window.ThreeMode.isActive()) window.ThreeMode.enter();
+          else if (!to3d && window.ThreeMode.isActive()) window.ThreeMode.exit();
+        } else if (px < r.x - 60) {
+          r._armed = false;
+        }
+      }
+    }
+
     function updateTrophies() {
       const ld = getLevelData();
       for (const t of (ld.trophies || [])) {
@@ -12582,6 +12603,7 @@
           updateCollectibles();
           updateTrophies(); updateEmbers(); updatePowerupItems();
           levelTime++;
+          checkDimensionRifts();
           checkGoal();
           if (GS !== 'playing' && window.ThreeMode) window.ThreeMode.reset();
           updateHUD(); frameCount++;
@@ -12710,7 +12732,7 @@
             updateAllies();
             updateNpcs();
             updateTrophies(); updateEmbers(); updatePowerupItems();
-            checkGoal(); updateHUD(); frameCount++;
+            checkDimensionRifts(); checkGoal(); updateHUD(); frameCount++;
             if (frameCount % 30 === 0) {
               updateHUDKeys();
               const gpEl = document.getElementById('gp-indicator');
@@ -12777,6 +12799,9 @@
         // perspective 3D instead of the flat 2D scene. The simulation itself
         // is untouched — this is purely a rendering swap.
         if (window.ThreeMode && window.ThreeMode.isActive()) {
+          // Mid-fold, draw the live 2D scene too so it crossfades under the
+          // swinging 3D view (the two canvases blend via their CSS opacity).
+          if (window.ThreeMode.isTransitioning()) drawScene();
           window.ThreeMode.renderWorld({ W, H, PW, PH });
         } else {
           drawScene();
