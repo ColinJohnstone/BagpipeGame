@@ -1,0 +1,16 @@
+# OS junk
+.DS_Store
+**/.DS_Store
+
+# Node / Vite (added in the tooling phase)
+node_modules/
+dist/
+.vite/
+*.log
+
+# Manual backup artifacts (superseded by git history; files stay on disk)
+*.bak
+*.bak_before_*
+index.html.bak
+pipes_of_glory_v3_171.html.bak_before_mobile_fps
+archive/
