@@ -65,6 +65,18 @@ npm run preview    # serve the built dist/ locally to sanity-check it
 | `M` | Mute music |
 | `Esc` / `P` | Pause (or in menus: navigate back; on castle-complete: main menu) |
 
+**💠 Highland Prism — 3D platformer mode** (grab the prism, or play **World 6 · PRISM SUMMIT**, or press `G` to toggle in any level): the level folds into a true third-person 3D platformer with its own control scheme, separate from 2D —
+
+| Key | 3D action |
+|---|---|
+| `W` `A` `S` `D` | Move (relative to the camera) |
+| `Space` | Jump |
+| `←` `→` | Rotate camera · `↑` `↓` tilt camera |
+| Mouse drag | Swing the camera 360° · wheel to zoom |
+| `Q` / `E` | Spin camera (alt) |
+
+Stomp enemies from above; reach the goal to fold back to 2D.
+
 **3D worldmap** — `WASD` / arrows walk; `←` `→` cycle galaxies/worlds; `Enter` selects / plays the nearby level; `Esc` backs out (world → galaxy → title). `F` opens the focused level in the builder (local edit mode only).
 
 **Level builder** — `Tab` / `Shift+Tab` cycles through stacked objects under the cursor; `Z` undo; `Cmd/Ctrl + C/V` copy-paste; `Cmd/Ctrl + drag` box-select; `F` / `F2` edit the focused level. See the Level Builder section for the full set.

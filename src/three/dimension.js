@@ -157,6 +157,29 @@ function buildPiperModel() {
   return { group: g, legL, legR, armL, armR, torso };
 }
 
+// Briefly show the 3D control scheme on entry (it differs from 2D), then fade.
+function showThreeHint() {
+  try {
+    const wrap = document.getElementById('wrap');
+    if (!wrap) return;
+    let el = document.getElementById('three-hint');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'three-hint';
+      el.style.cssText = 'position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:60;'
+        + "font-family:'Press Start 2P',monospace;font-size:8px;line-height:1.7;color:#eaf2ff;text-align:center;"
+        + 'background:rgba(10,14,30,0.66);border:1px solid rgba(150,180,255,0.4);border-radius:10px;'
+        + 'padding:9px 14px;pointer-events:none;transition:opacity .6s ease;backdrop-filter:blur(4px);';
+      el.innerHTML = '💠 3D MODE<br>WASD MOVE · SPACE JUMP<br>ARROWS / DRAG — CAMERA';
+      wrap.appendChild(el);
+    }
+    el.style.display = '';
+    el.style.opacity = '1';
+    clearTimeout(showThreeHint._t);
+    showThreeHint._t = setTimeout(() => { el.style.opacity = '0'; }, 4200);
+  } catch (e) {}
+}
+
 function ensureInit(W, H) {
   if (inited || failed) return !failed;
   try {
@@ -209,24 +232,27 @@ function ensureInit(W, H) {
 
 // ── camera controls (mouse-drag orbit temporarily overrides auto-follow) ────
 function attachCameraControls(cv) {
-  const down = (e) => { if (mode === '2d') return; drag = { x: e.clientX, y: e.clientY }; e.preventDefault(); };
+  // Attach to WINDOW (not just the WebGL canvas) so the drag registers no
+  // matter which element ends up topmost — the earlier canvas-only listener
+  // could be starved of events. Skip drags that start on UI (HUD, buttons).
+  const onUI = (t) => t && t.closest && t.closest('button, input, #hud, #touch-ctrl, .screen');
+  const down = (e) => { if (mode === '2d' || onUI(e.target)) return; drag = { x: e.clientX, y: e.clientY }; };
   const move = (e) => {
     if (!drag) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     drag.x = e.clientX; drag.y = e.clientY;
-    cam.yaw -= dx * 0.006;
+    cam.yaw -= dx * 0.007;
     cam.el = Math.max(CAM.minEl, Math.min(CAM.maxEl, cam.el - dy * 0.005));
     camDragCd = 110;   // suppress auto-follow briefly after a manual look
   };
   const up = () => { drag = null; };
-  cv.addEventListener('pointerdown', down);
+  window.addEventListener('pointerdown', down);
   window.addEventListener('pointermove', move);
   window.addEventListener('pointerup', up);
-  cv.addEventListener('wheel', (e) => {
+  window.addEventListener('wheel', (e) => {
     if (mode === '2d') return;
     cam.dist = Math.max(CAM.minDist, Math.min(CAM.maxDist, cam.dist + e.deltaY * 0.3));
-    e.preventDefault();
-  }, { passive: false });
+  }, { passive: true });
 }
 
 // ── static level geometry + collision boxes ─────────────────────────────────
@@ -378,15 +404,25 @@ function tickController() {
   if (camDragCd > 0) camDragCd--;
 
   const K = window.K || {}, JP = window.JP || {};
-  const inF = (K['ArrowUp'] || K['KeyW'] ? 1 : 0) - (K['ArrowDown'] || K['KeyS'] ? 1 : 0);
-  const inS = (K['ArrowRight'] || K['KeyD'] ? 1 : 0) - (K['ArrowLeft'] || K['KeyA'] ? 1 : 0);
-  // Keyboard camera spin (abilities are inert in 3D).
-  if (K['KeyQ']) { cam.yaw += 0.05; camDragCd = 30; }
-  if (K['KeyE']) { cam.yaw -= 0.05; camDragCd = 30; }
+  // ── 3D has its OWN control scheme, deliberately separate from 2D ──
+  //   MOVE:   W A S D          (2D uses the arrow keys for movement)
+  //   JUMP:   Space            (2D uses Z / ArrowUp)
+  //   CAMERA: arrow keys rotate/tilt, + Q/E spin, + mouse-drag, + wheel zoom
+  const inF = (K['KeyW'] ? 1 : 0) - (K['KeyS'] ? 1 : 0);
+  const inS = (K['KeyD'] ? 1 : 0) - (K['KeyA'] ? 1 : 0);
+  // Keyboard camera control (always works, no mouse required).
+  let camKey = false;
+  if (K['ArrowLeft'] || K['KeyQ']) { cam.yaw += 0.05; camKey = true; }
+  if (K['ArrowRight'] || K['KeyE']) { cam.yaw -= 0.05; camKey = true; }
+  if (K['ArrowUp']) { cam.el = Math.min(CAM.maxEl, cam.el + 0.03); camKey = true; }
+  if (K['ArrowDown']) { cam.el = Math.max(CAM.minEl, cam.el - 0.03); camKey = true; }
+  if (camKey) camDragCd = 45;   // suppress auto-follow while steering the camera
 
   // Camera-relative movement basis (from the camera's current yaw).
-  const cf = { x: Math.sin(cam.yaw), z: Math.cos(cam.yaw) };  // camera forward (into screen)
-  const cr = { x: Math.cos(cam.yaw), z: -Math.sin(cam.yaw) }; // camera right
+  // forward = direction from camera toward the target (into the screen);
+  // right = cross(forward, up) so D is screen-right, A is screen-left.
+  const cf = { x: Math.sin(cam.yaw), z: Math.cos(cam.yaw) };   // camera forward
+  const cr = { x: -Math.cos(cam.yaw), z: Math.sin(cam.yaw) };  // camera right
 
   const locked = warp < 0.45;
   let wx = 0, wz = 0, moving = false;
@@ -398,9 +434,10 @@ function tickController() {
     // Character model turns to face the way it's moving.
     const targetYaw = Math.atan2(wx, wz);
     p3.yaw = angleLerp(p3.yaw, targetYaw, 0.3);
-    // Camera re-centres behind the character only when advancing FORWARD, so
-    // pure strafing (A/D) slides cleanly sideways instead of spiralling.
-    if (camDragCd <= 0 && inF > 0) cam.yaw = angleLerp(cam.yaw, p3.yaw, 0.06);
+    // Gentle auto-follow: the camera drifts to behind the character only when
+    // advancing FORWARD and you're not actively steering it — a soft assist,
+    // never fast enough to hijack the controls.
+    if (camDragCd <= 0 && inF > 0) cam.yaw = angleLerp(cam.yaw, p3.yaw, 0.035);
   }
 
   const ctl = p3.grounded ? 1 : AIR_CTL;
@@ -412,8 +449,8 @@ function tickController() {
   const speed = Math.hypot(p3.vx, p3.vz);
   if (p3.grounded && speed > 0.4) p3.stepPhase += 0.35; else p3.stepPhase *= 0.8;
 
-  // Jump (Space / Z only — ArrowUp/W are forward-move, not jump, in 3D).
-  if (!locked && p3.grounded && (JP['Space'] || JP['KeyZ'])) {
+  // Jump — Space (3D's own jump key).
+  if (!locked && p3.grounded && JP['Space']) {
     p3.vy = JUMP_V; p3.grounded = false;
     try { if (typeof window.sfx === 'function') window.sfx('jump'); } catch (e) {}
   }
@@ -471,6 +508,7 @@ const ThreeMode = {
   enter() {
     if (failed || mode === '3d' || mode === 'entering') return;
     mode = 'entering'; warpTarget = 1;
+    showThreeHint();
     const player = window.player || { x: 40, y: 300 };
     p3.x = player.x + PWc / 2; p3.y = -(player.y + PHc); p3.z = 0;
     p3.vx = p3.vy = p3.vz = 0; p3.grounded = false; p3.yaw = FACE_X; p3.stepPhase = 0;
@@ -491,6 +529,8 @@ const ThreeMode = {
     if (cv) { cv.style.display = 'none'; cv.style.pointerEvents = 'none'; }
     const gc = document.getElementById('gameCanvas');
     if (gc) gc.style.opacity = '';
+    const hint = document.getElementById('three-hint');
+    if (hint) hint.style.display = 'none';
   },
 
   tick3D(opts) {
