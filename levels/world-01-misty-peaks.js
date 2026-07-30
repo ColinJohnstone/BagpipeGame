@@ -311,6 +311,12 @@
       ],
       "powerupItems": [
         {
+          "x": 620,
+          "y": 418,
+          "type": "prism",
+          "collected": false
+        },
+        {
           "x": 1113,
           "y": 370,
           "type": "chargerefresh",

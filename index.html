@@ -2705,6 +2705,11 @@
   <!-- World map — 3D-style galaxy + world walk-around menu. Owns the
        canvas while GS === 'worldmap'. -->
   <script src="src/worldmap.js"></script>
+  <!-- ─── 3D dimension mode (Three.js, bundled by Vite) ──────────────
+       The one true ES module in the project. Reads live 2D world state
+       and re-renders it in perspective 3D when the Highland Prism is
+       active. Degrades to 2D if WebGL/Three fails. window.ThreeMode. -->
+  <script type="module" src="/src/three/dimension.js"></script>
   <!-- ─── External level data ───────────────────────────────────────
        Each world's levels live in /levels/world-NN-name.js. Loaded
        BEFORE the main game script so window.LEVELS_W{NN} is defined
@@ -9741,6 +9746,8 @@
         : WORLDS[currentWorld - 1].levels[lvl - 1];
       if (!ld.weather) ld.weather = 'none';
       camera = { x: 0, y: 0 };
+      // Never let 3D dimension mode leak across a level (re)load.
+      if (window.ThreeMode) window.ThreeMode.reset();
       goalRect = { x: ld.goalX, y: ld.goalY, w: 100, h: 140, triggered: false };
 
       // ── Goal-castle placement pass ───────────────────────────────
@@ -10643,7 +10650,7 @@
         if (overlap(player.x, player.y, PW, PH, pu.x, pu.y, 24, 24)) {
           pu.collected = true;
           sfx('powerup_spawn');
-          const puColors3 = { rapid: '#ff4488', big: '#44ffcc', bomb: '#ff8800', drum: '#ff4400', invincible: '#ffd700', chargerefresh: '#ff8844', extrajump: '#88aaff', shield: '#7fff00', heal: '#ff4488' };
+          const puColors3 = { rapid: '#ff4488', big: '#44ffcc', bomb: '#ff8800', drum: '#ff4400', invincible: '#ffd700', chargerefresh: '#ff8844', extrajump: '#88aaff', shield: '#7fff00', heal: '#ff4488', prism: '#b06bff' };
           const col3 = puColors3[pu.type] || '#f5c518';
           spawnPart(pu.x + 12, pu.y + 12, col3, 14, 4);
           // Apply effect immediately
@@ -10656,6 +10663,13 @@
           else if (pu.type === 'extrajump') { player._extraJumps = Math.min((player._extraJumps || 0) + 1, 2); floatText('🪶 EXTRA JUMP!', pu.x - camera.x - 40, pu.y - camera.y - 20, col3); }
           else if (pu.type === 'shield') { player.shieldOn = true; player.shieldTimer = 360; spawnRing(player.x + 16, player.y + 20, '#7fff00', 14, 22, 2); sfx('shield'); floatText('🌿 THISTLE SHIELD!', pu.x - camera.x - 40, pu.y - camera.y - 20, col3); }
           else if (pu.type === 'heal') { if (player.hp < player.maxHp) { player.hp = Math.min(player.maxHp, player.hp + 1); spawnPart(player.x + 16, player.y + 25, '#fff', 8, 2); floatText('+1 HP ❤️', pu.x - camera.x - 30, pu.y - camera.y - 20, col3); } else { floatText('❤️ FULL HP', pu.x - camera.x - 30, pu.y - camera.y - 20, col3); } sfx('powerup_collect'); }
+          else if (pu.type === 'prism') {
+            // The Highland Prism — fold the whole level into a true 3D platformer.
+            spawnRing(player.x + 16, player.y + 25, '#b06bff', 20, 34, 3);
+            spawnPart(player.x + 16, player.y + 25, '#d0a6ff', 26, 6, 0.05, 'star');
+            floatText('💠 THE HIGHLAND PRISM!', pu.x - camera.x - 60, pu.y - camera.y - 24, '#b06bff');
+            if (window.ThreeMode && !window.ThreeMode.isFailed()) window.ThreeMode.enter();
+          }
           score += 300; updateHUD();
         }
       }
@@ -11715,8 +11729,8 @@
       for (const pu of (ld.powerupItems || [])) {
         if (pu.collected) continue;
         if (pu.x + 28 < camera.x - 20 || pu.x > camera.x + W + 20) continue;
-        const puIcons2 = { rapid: '⚡', big: '🎵', bomb: '💣', drum: '🥁', invincible: '🏆', chargerefresh: '⚔️', extrajump: '🪶', shield: '🌿', heal: '❤️' };
-        const puGlow2 = { rapid: '#ff4488', big: '#44ffcc', bomb: '#ff8800', drum: '#ff4400', invincible: '#ffd700', chargerefresh: '#ff8844', extrajump: '#88aaff' };
+        const puIcons2 = { rapid: '⚡', big: '🎵', bomb: '💣', drum: '🥁', invincible: '🏆', chargerefresh: '⚔️', extrajump: '🪶', shield: '🌿', heal: '❤️', prism: '💠' };
+        const puGlow2 = { rapid: '#ff4488', big: '#44ffcc', bomb: '#ff8800', drum: '#ff4400', invincible: '#ffd700', chargerefresh: '#ff8844', extrajump: '#88aaff', prism: '#b06bff' };
         const gCol = puGlow2[pu.type] || '#fff';
         const bob2 = Math.sin(frameCount * 0.1 + pu.x * 0.02) * 3;
         const gp2 = ctx.createRadialGradient(pu.x + 14, pu.y + 14 + bob2, 0, pu.x + 14, pu.y + 14 + bob2, 18);
@@ -12550,6 +12564,24 @@
         if (hitStop > 0) { hitStop--; return; }
         // Combo decay — chain expires if you go too long without a kill.
         if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) comboCount = 0; }
+        // ── Highland Prism: TRUE 3D platformer mode ──────────────────────
+        // While the 3D controller owns the player, hand it the whole tick and
+        // reuse the existing 2D coin / goal / pickup logic against the position
+        // it writes back to player.x/y. The normal 2D player/enemy sim below is
+        // skipped entirely (enemies freeze; movement is fully 3D).
+        if (window.ThreeMode && window.ThreeMode.isControlling()) {
+          const ld3 = getLevelData();
+          updateWeatherState(ld3);
+          window.ThreeMode.tick3D({ PW, PH });
+          updateCollectibles();
+          updateTrophies(); updateEmbers(); updatePowerupItems();
+          levelTime++;
+          checkGoal();
+          if (GS !== 'playing' && window.ThreeMode) window.ThreeMode.reset();
+          updateHUD(); frameCount++;
+          for (const k in JP) delete JP[k];
+          return;
+        }
         const ld = getLevelData();
         updateWeatherState(ld);
         // Tick rotating/moving/timed/fallaway platforms FIRST so their
@@ -12655,6 +12687,7 @@
               return;
             }
             GS = 'gameover'; stopMusic();
+            if (window.ThreeMode) window.ThreeMode.reset();
             { const _tb = document.getElementById('time-banner'); if (_tb) _tb.style.display = 'none'; }
             const _gobb = document.getElementById('btn-gameover-builder');
             if (_gobb) _gobb.style.display = (currentWorld === 99) ? '' : 'none';
@@ -12734,7 +12767,14 @@
     function renderFrame() {
       if (GS === 'playing' || GS === 'paused') {
         ctx.clearRect(0, 0, W, H);
-        drawScene();
+        // Highland Prism: when 3D mode is active, re-render the live world in
+        // perspective 3D instead of the flat 2D scene. The simulation itself
+        // is untouched — this is purely a rendering swap.
+        if (window.ThreeMode && window.ThreeMode.isActive()) {
+          window.ThreeMode.renderWorld({ W, H, PW, PH });
+        } else {
+          drawScene();
+        }
       } else if (GS === 'builder') {
         ctx.clearRect(0, 0, W, H);
         BLD.drawScene();
@@ -14699,6 +14739,15 @@
         }
       }
       const code = normalizeKeyCode(e.code || e.key);
+      // ── Dev/preview toggle: G flips the 3D dimension mode while playing ──
+      // (The real trigger is the Highland Prism pickup; this lets you demo the
+      // mode from any level.)
+      if (code === 'KeyG' && GS === 'playing' && window.ThreeMode && !window.ThreeMode.isFailed()) {
+        e.preventDefault();
+        if (window.ThreeMode.isActive()) window.ThreeMode.exit();
+        else window.ThreeMode.enter();
+        return;
+      }
       // Space on the game-over screen acts as "TRY AGAIN" so dying + retrying is one keystroke
       if (code === 'Space' && GS === 'gameover') {
         const go = document.getElementById('s-gameover');
