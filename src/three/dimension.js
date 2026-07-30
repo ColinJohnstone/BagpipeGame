@@ -218,11 +218,13 @@ function buildLevel(ld) {
   const bg = (ld.bgColors && ld.bgColors.length) ? ld.bgColors : ['#0a1520', '#182535'];
   const baseTop = toColor(bg[0] || '#0a1520', '#0a1520');
   const baseBot = toColor(bg[1] || bg[0], '#182535');
-  const skyTop = brighten(baseTop, 0.62);   // vivid daylight sky
-  const skyBot = brighten(baseBot, 0.78);   // pale horizon
+  // Bias the sky toward a vivid daylight blue (keeping a hint of the theme
+  // hue) so even dim night themes read as bright and sunny in 3D.
+  const skyTop = baseTop.clone().lerp(new THREE.Color(0x8ec7ff), 0.82);
+  const skyBot = baseBot.clone().lerp(new THREE.Color(0xdff0ff), 0.72);
   if (scene.background && scene.background.dispose) scene.background.dispose();
   scene.background = makeSkyTexture(skyTop, skyBot);
-  scene.fog = new THREE.Fog(skyBot.getHex(), 1100, 3800);
+  scene.fog = new THREE.Fog(skyBot.getHex(), 1200, 4200);
 }
 
 // ── sprite drawing ──────────────────────────────────────────────────────────
@@ -270,6 +272,92 @@ function aabbHit(px0, px1, py0, py1, pz0, pz1, b) {
   return px1 > b.x0 && px0 < b.x1 && py1 > b.y0 && py0 < b.y1 && pz1 > b.z0 && pz0 < b.z1;
 }
 
+// Center-x/z, feet-y AABB test against a level box.
+function boxHit(cx, feetY, cz, hx, hh, hz, b) {
+  return cx + hx > b.x0 && cx - hx < b.x1 && feetY + hh > b.y0 && feetY < b.y1 && cz + hz > b.z0 && cz - hz < b.z1;
+}
+
+// Reuse the 2D kill funnel (combo chain, screen shake, bonus coins, stats)
+// so kills scored in 3D feel and pay out exactly like 2D kills.
+function killCredit(e) {
+  if (e._statCounted) return;
+  e._statCounted = true;
+  try { if (window.GameStats) window.GameStats.recordEnemyKill(); } catch (err) {}
+  try { if (typeof window.onEnemyKilled === 'function') window.onEnemyKilled(e); } catch (err) {}
+}
+
+// ── full 3D enemy AI ────────────────────────────────────────────────────────
+// Enemies chase the piper across the X-Z plane with gravity + platform
+// collision. Stomp them from above to kill; touch them any other way to take a
+// hit. Positions are written back to e.x/e.y so a return to 2D is seamless.
+function tickEnemies3D() {
+  const player = window.player;
+  const foes = (window.enemies || []).filter(e => e && !e.dead && !e._dead);
+  for (const e of foes) {
+    const ew = e.w || 32, eh = e.h || 32;
+    const hx = ew / 2, hz = Math.min(ew / 2, 18), h = eh;
+    if (!e._p3) e._p3 = { x: e.x + ew / 2, y: -(e.y + eh), z: 0, vx: 0, vy: 0, vz: 0, grounded: false };
+    const s = e._p3;
+
+    // Chase (only once the fold-in has mostly finished).
+    const dx = p3.x - s.x, dz = p3.z - s.z;
+    const dist = Math.hypot(dx, dz) || 1;
+    const isBoss = e.v >= 90;
+    let spd = 1.7;
+    if (e.v === 4) spd = 2.9;        // charger
+    else if (e.v === 14) spd = 2.4;  // berserker
+    else if (isBoss) spd = 2.2;
+    if (warp > 0.6 && dist < 1200) {
+      s.vx += ((dx / dist) * spd - s.vx) * 0.08;
+      s.vz += ((dz / dist) * spd - s.vz) * 0.08;
+    } else { s.vx *= 0.9; s.vz *= 0.9; }
+
+    // Gravity.
+    s.vy -= GRAV;
+    if (s.vy < -MAX_FALL) s.vy = -MAX_FALL;
+
+    // Integrate + resolve per axis.
+    s.x += s.vx;
+    for (const b of boxes) { if (boxHit(s.x, s.y, s.z, hx, h, hz, b)) { if (s.vx > 0) s.x = b.x0 - hx; else if (s.vx < 0) s.x = b.x1 + hx; s.vx = 0; } }
+    s.z += s.vz;
+    for (const b of boxes) { if (boxHit(s.x, s.y, s.z, hx, h, hz, b)) { if (s.vz > 0) s.z = b.z0 - hz; else if (s.vz < 0) s.z = b.z1 + hz; s.vz = 0; } }
+    s.grounded = false; s.y += s.vy;
+    for (const b of boxes) { if (boxHit(s.x, s.y, s.z, hx, h, hz, b)) { if (s.vy <= 0) { s.y = b.y1; s.grounded = true; } else s.y = b.y0 - h; s.vy = 0; } }
+
+    if (s.y < -3000) { e.dead = true; continue; }
+
+    // Write back to 2D coords so exiting 3D is seamless.
+    e.x = s.x - ew / 2; e.y = -s.y - eh;
+
+    // Player interaction.
+    const near = Math.abs(p3.x - s.x) < (P_HX + hx) && Math.abs(p3.z - s.z) < (P_HZ + hz)
+      && (p3.y < s.y + h) && (p3.y + P_HEIGHT > s.y);
+    if (near) {
+      const stomp = p3.vy < 0 && p3.y > s.y + h * 0.55;
+      if (stomp && !isBoss) {
+        e.hp = 0; e.dead = true;
+        p3.vy = JUMP_V * 0.72;
+        killCredit(e);
+        try { if (window.sfx) window.sfx('enemy_die'); } catch (err) {}
+      } else if (isBoss && stomp) {
+        // Bosses take a hit from a stomp but don't die outright.
+        if (typeof e.hp === 'number') e.hp -= 1;
+        p3.vy = JUMP_V * 0.6;
+        try { if (window.sfx) window.sfx('hit'); } catch (err) {}
+        if (e.hp <= 0) { e.dead = true; killCredit(e); }
+      } else if (!(player.invincible > 0)) {
+        player.hp -= 1;
+        player.invincible = 66;
+        player._lastHp = player.hp;
+        const kb = Math.atan2(p3.z - s.z, p3.x - s.x);
+        p3.vx = Math.cos(kb) * 6.5; p3.vz = Math.sin(kb) * 6.5; p3.vy = 6.5;
+        try { if (window.sfx) window.sfx('player_hit'); } catch (err) {}
+        try { if (window.addShake) window.addShake(7); } catch (err) {}
+      }
+    }
+  }
+}
+
 function syncPlayerBack() {
   const player = window.player;
   if (!player) return;
@@ -278,6 +366,10 @@ function syncPlayerBack() {
 }
 
 function tickController() {
+  // Player invincibility frames (from taking a hit) tick down here since the
+  // 2D sim that normally decrements them is bypassed in 3D.
+  if (window.player && window.player.invincible > 0) window.player.invincible--;
+
   // Camera-relative movement basis (flattened to XZ).
   const fx = Math.sin(cam.az), fz = Math.cos(cam.az);   // "into screen" toward target
   // forward should push AWAY from camera → toward -(camera offset) = (fx,fz) points from target to cam,
@@ -390,6 +482,8 @@ const ThreeMode = {
 
   reset() {
     mode = '2d'; warp = 0; warpTarget = 0; drag = null;
+    // Drop each enemy's 3D state so a fresh entry re-seeds from 2D positions.
+    try { (window.enemies || []).forEach(e => { if (e) e._p3 = null; }); } catch (err) {}
     const cv = document.getElementById('three-canvas');
     if (cv) { cv.style.display = 'none'; cv.style.pointerEvents = 'none'; }
     const gc = document.getElementById('gameCanvas');
@@ -410,6 +504,11 @@ const ThreeMode = {
     }
 
     tickController();
+    if (mode === '3d' || mode === 'entering') tickEnemies3D();
+
+    // Player death in 3D: hard-cut back to 2D so the normal death / respawn /
+    // gameover path takes over on the next tick (position is already synced).
+    if (window.player && window.player.hp <= 0 && mode !== 'exiting') { this.reset(); return; }
 
     // Warp easing + mode settle.
     warp += (warpTarget - warp) * 0.1;
@@ -493,9 +592,13 @@ const ThreeMode = {
         em.sprite.visible = true;
         drawEnemySprite(em.spr, e, frame);
         const ew = e.w || 32, eh = e.h || 32;
+        // Use the enemy's live 3D position (it now moves in Z too).
+        const ex = e._p3 ? e._p3.x : (e.x + ew / 2);
+        const ey = e._p3 ? (e._p3.y + eh / 2) : -(e.y + eh / 2);
+        const ez = e._p3 ? e._p3.z : 0;
         em.sprite.scale.set(ew / 44, eh / 44, 1);
-        em.sprite.position.set(e.x + ew / 2, -(e.y + eh / 2), 0);
-        em.sprite.rotation.set(0, Math.atan2(camera.position.x - (e.x + ew / 2), camera.position.z), 0);
+        em.sprite.position.set(ex, ey, ez);
+        em.sprite.rotation.set(0, Math.atan2(camera.position.x - ex, camera.position.z - ez), 0);
       } else em.sprite.visible = false;
     }
 
