@@ -90,6 +90,53 @@ function makeSkyTexture(topC, botC) {
   return tex;
 }
 
+// ── procedural biome block textures (bright, clean, Mario-3D-World-ish) ──────
+const _texCache = {};
+function canvasTex(key, w, h, draw) {
+  if (_texCache[key]) return _texCache[key];
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  try { t.anisotropy = 4; } catch (e) {}
+  _texCache[key] = t; return t;
+}
+function speckle(cx, w, h, cols, n) {
+  for (let i = 0; i < n; i++) { cx.fillStyle = cols[(Math.random() * cols.length) | 0]; const s = 2 + Math.random() * 3; cx.fillRect(Math.random() * w, Math.random() * h, s, s); }
+}
+// top textures
+function texTop(key, base, cols) { return canvasTex(key, 64, 64, (cx, w, h) => { cx.fillStyle = base; cx.fillRect(0, 0, w, h); speckle(cx, w, h, cols, 260); }); }
+// side texture with a coloured fringe along the very top (grass/snow overhang)
+function texSide(key, base, cols, fringe) {
+  return canvasTex(key, 64, 64, (cx, w, h) => {
+    cx.fillStyle = base; cx.fillRect(0, 0, w, h);
+    for (let i = 0; i < 220; i++) { cx.fillStyle = cols[(Math.random() * cols.length) | 0]; cx.fillRect(Math.random() * w, Math.random() * h, 3, 2); }
+    if (fringe) { cx.fillStyle = fringe; cx.fillRect(0, 0, w, 9); for (let i = 0; i < w; i += 4) cx.fillRect(i, 7 + Math.random() * 6, 3, 6); }
+  });
+}
+// glowing-crack emissive map (for lava rock)
+function texCracks(key, glow) {
+  return canvasTex(key, 64, 64, (cx, w, h) => {
+    cx.fillStyle = '#000'; cx.fillRect(0, 0, w, h);
+    cx.strokeStyle = glow; cx.lineWidth = 2;
+    for (let i = 0; i < 5; i++) { cx.beginPath(); let x = Math.random() * w, y = Math.random() * h; cx.moveTo(x, y); for (let j = 0; j < 4; j++) { x += (Math.random() - 0.5) * 26; y += (Math.random() - 0.5) * 26; cx.lineTo(x, y); } cx.stroke(); }
+  });
+}
+
+// Biome palettes: block textures + sky/fog/light + decoration style.
+const BIOMES = {
+  grass: { top: () => texTop('gTop', '#57b544', ['#66c853', '#4aa338', '#72d15f']), side: () => texSide('gSide', '#7a5230', ['#8a6238', '#653f1f', '#946b3e'], '#57b544'), sky: ['#7ec2ff', '#d4ecff'], fog: '#cfe8ff', light: '#fff2da', deco: 'tree', shine: 0 },
+  ice: { top: () => texTop('iTop', '#bfe6f5', ['#d6f2ff', '#a9d8ec', '#e8faff']), side: () => texSide('iSide', '#8fc4dc', ['#a9d8ec', '#79b0c8', '#c6ebfa'], '#eaffff'), sky: ['#a7d8ff', '#e6f6ff'], fog: '#e6f6ff', light: '#eaf4ff', deco: 'crystal', shine: 0.4 },
+  lava: { top: () => texTop('lTop', '#3a2b2b', ['#4a3636', '#2c2020', '#553c3c']), side: () => texSide('lSide', '#2e2222', ['#3c2b2b', '#241a1a', '#463232'], null), sky: ['#c8522a', '#f2a15a'], fog: '#e07a3a', light: '#ffd8a0', deco: 'ember', shine: 0, emissive: () => texCracks('lCrack', '#ff8a2a') },
+  sky: { top: () => texTop('sTop', '#c9d4e8', ['#dbe4f2', '#b4c2dc', '#eef3fb']), side: () => texSide('sSide', '#aab6cf', ['#c0cbe0', '#95a2bd', '#d6dded'], '#eef3fb'), sky: ['#8fc4ff', '#dff0ff'], fog: '#dff0ff', light: '#fff6e6', deco: 'cloud', shine: 0.1 },
+};
+function pickBiome(ld) {
+  const b = ld && ld.biome;
+  if (b && BIOMES[b]) return b;
+  return 'grass';
+}
+
 // ── 3D voxel piper model ────────────────────────────────────────────────────
 function mat(color, rough) { return new THREE.MeshStandardMaterial({ color, roughness: rough == null ? 0.72 : rough, metalness: 0.04 }); }
 function box(w, h, d, color, rough) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, rough)); }
@@ -175,7 +222,7 @@ function buildPiperModel() {
   }
 
   parts.forEach(m => g.add(m));
-  g.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return { group: g, legL, legR, armL, armR, torso: head };
 }
 
@@ -224,18 +271,28 @@ function ensureInit(W, H) {
     renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(W, H, false);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(CAM.fov, W / H, 1, 9000);
 
-    const amb = new THREE.HemisphereLight(0xdfeeff, 0x506070, 1.7);
+    const amb = new THREE.HemisphereLight(0xdfeeff, 0x53607a, 1.35);
     scene.add(amb);
-    const key = new THREE.DirectionalLight(0xfff4e0, 2.1); key.position.set(-260, 620, 420); scene.add(key);
-    const rim = new THREE.DirectionalLight(0xa8c8ff, 0.7); rim.position.set(420, 200, -340); scene.add(rim);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(120, 120, 520); scene.add(fill);
+    const key = new THREE.DirectionalLight(0xfff2da, 2.0);
+    key.position.set(-260, 620, 420);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.camera.near = 10; key.shadow.camera.far = 2600;
+    key.shadow.camera.left = -820; key.shadow.camera.right = 820;
+    key.shadow.camera.top = 820; key.shadow.camera.bottom = -820;
+    key.shadow.bias = -0.0006;
+    scene.add(key); scene.add(key.target);
+    const rim = new THREE.DirectionalLight(0xa8c8ff, 0.55); rim.position.set(420, 200, -340); scene.add(rim);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.4); fill.position.set(120, 120, 520); scene.add(fill);
 
-    three = { platGroup: new THREE.Group(), coins: [], enemies: [], notes: [], player: null, shadow: null, skirlRing: null, hookLine: null };
-    scene.add(three.platGroup);
+    three = { platGroup: new THREE.Group(), decoGroup: new THREE.Group(), coins: [], enemies: [], notes: [], player: null, shadow: null, skirlRing: null, hookLine: null, keyLight: key };
+    scene.add(three.platGroup); scene.add(three.decoGroup);
 
     // 3D piper.
     const model = buildPiperModel();
@@ -318,33 +375,81 @@ function buildLevel(ld) {
   }
   boxes = [];
 
-  const pc = (ld.platColors && ld.platColors.length) ? ld.platColors : ['#2a3a1a', '#3a5228', '#4a7a38', '#5a9a48', '#6ab858'];
-  const faceCol = toColor(pc[2] || pc[pc.length - 1], '#4a7a38');
-  const topCol = toColor(pc[4] || pc[pc.length - 1], '#6ab858');
+  // Biome-driven look: textured grass / ice / lava / sky blocks.
+  const biome = pickBiome(ld);
+  const B = BIOMES[biome];
+  const topBase = B.top(), sideBase = B.side();
+  const emBase = B.emissive ? B.emissive() : null;
 
   for (const p of (ld.platforms || [])) {
     if (p.type && p.type !== 'ground') continue;
-    // Optional per-platform depth: zc = z-centre, zd = z half-depth. Default is
-    // the full walkable slab. Narrow/offset values make platforms that you can
-    // walk AROUND in 3D, or depth-staggered islands that only line up in 2D.
-    // (The flat 2D game ignores zc/zd entirely — everything is on the plane.)
+    // Optional per-platform depth: zc = z-centre, zd = z half-depth.
     const zc = (typeof p.zc === 'number') ? p.zc : 0;
     const zd = (typeof p.zd === 'number') ? p.zd : HALF_D;
     const geo = new THREE.BoxGeometry(p.w, p.h, zd * 2);
-    const side = new THREE.MeshStandardMaterial({ color: faceCol, roughness: 0.85, metalness: 0.04 });
-    const top = new THREE.MeshStandardMaterial({ color: topCol, roughness: 0.7, metalness: 0.04 });
+
+    // Clone the biome textures per block so they TILE to the block's size
+    // (grass/ice patterns repeat instead of stretching).
+    const topTex = topBase.clone(); topTex.needsUpdate = true; topTex.repeat.set(Math.max(1, p.w / 70), Math.max(1, (zd * 2) / 70));
+    const sideTex = sideBase.clone(); sideTex.needsUpdate = true; sideTex.repeat.set(Math.max(1, p.w / 70), 1);
+    const top = new THREE.MeshStandardMaterial({ map: topTex, roughness: B.shine ? 0.34 : 0.85, metalness: B.shine ? 0.25 : 0.03 });
+    const side = new THREE.MeshStandardMaterial({ map: sideTex, roughness: 0.9, metalness: 0.02 });
+    if (emBase) {
+      const em = emBase.clone(); em.needsUpdate = true; em.repeat.copy(sideTex.repeat);
+      side.emissiveMap = em; side.emissive = new THREE.Color(0xff6a1e); side.emissiveIntensity = 1.3;
+    }
     const mesh = new THREE.Mesh(geo, [side, side, top, side, side, side]);
     mesh.position.set(p.x + p.w / 2, -(p.y + p.h / 2), zc);
+    mesh.castShadow = true; mesh.receiveShadow = true;
     three.platGroup.add(mesh);
     boxes.push({ x0: p.x, x1: p.x + p.w, y0: -(p.y + p.h), y1: -p.y, z0: zc - zd, z1: zc + zd });
   }
 
-  const bg = (ld.bgColors && ld.bgColors.length) ? ld.bgColors : ['#0a1520', '#182535'];
-  const skyTop = toColor(bg[0], '#0a1520').clone().lerp(new THREE.Color(0x8ec7ff), 0.82);
-  const skyBot = toColor(bg[1] || bg[0], '#182535').clone().lerp(new THREE.Color(0xdff0ff), 0.72);
+  makeDecorations(ld, biome);
+
+  const skyTop = toColor(B.sky[0], '#7ec2ff'), skyBot = toColor(B.sky[1], '#d4ecff');
   if (scene.background && scene.background.dispose) scene.background.dispose();
   scene.background = makeSkyTexture(skyTop, skyBot);
-  scene.fog = new THREE.Fog(skyBot.getHex(), 1200, 4400);
+  scene.fog = new THREE.Fog(toColor(B.fog, '#cfe8ff').getHex(), 1400, 5200);
+  // Warm/cool the key light to the biome.
+  if (three.keyLight) three.keyLight.color.set(B.light);
+}
+
+// Scatter simple biome decorations (scenery) around the level's edges.
+function makeDecorations(ld, biome) {
+  const g = three.decoGroup;
+  for (let i = g.children.length - 1; i >= 0; i--) { const m = g.children[i]; g.remove(m); if (m.geometry) m.geometry.dispose(); }
+  const width = ld.width || 1600;
+  // base ground height = top of the first non-special platform (fallback -500)
+  let baseY = -500;
+  const p0 = (ld.platforms || []).find(p => !p.type || p.type === 'ground');
+  if (p0) baseY = -p0.y;
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const N = 16;
+  for (let i = 0; i < N; i++) {
+    const x = rand(40, width - 40);
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const z = side * rand(240, 560);
+    let node = new THREE.Group();
+    if (biome === 'grass') {
+      const trunk = cyl(6, 7, 34, '#6b4423'); trunk.position.y = 17; node.add(trunk);
+      const c1 = sph(24, '#3f9a34'); c1.position.y = 44; c1.scale.set(1, 0.9, 1); node.add(c1);
+      const c2 = sph(17, '#4bb03f'); c2.position.set(10, 54, 6); node.add(c2);
+    } else if (biome === 'ice') {
+      const cr = new THREE.Mesh(new THREE.ConeGeometry(14, 52, 6), new THREE.MeshStandardMaterial({ color: '#bfeeff', roughness: 0.2, metalness: 0.3, transparent: true, opacity: 0.9 }));
+      cr.position.y = 26; node.add(cr);
+    } else if (biome === 'lava') {
+      const r = sph(18, '#2c2020'); r.scale.set(1.2, 0.7, 1.1); r.position.y = 10; node.add(r);
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(7, 10, 10), new THREE.MeshBasicMaterial({ color: '#ff7a1e' })); glow.position.y = 18; node.add(glow);
+    } else { // sky — floating clouds
+      const y = baseY + rand(60, 260);
+      for (let k = 0; k < 4; k++) { const puff = sph(rand(20, 34), '#ffffff'); puff.position.set(rand(-30, 30), 0, rand(-20, 20)); puff.scale.y = 0.7; node.add(puff); }
+      node.position.set(x, y, z); node.traverse(o => { if (o.isMesh) { o.castShadow = false; } }); g.add(node); continue;
+    }
+    node.position.set(x, baseY, z);
+    node.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    g.add(node);
+  }
 }
 
 // ── coins + enemies (3D) ────────────────────────────────────────────────────
@@ -386,7 +491,7 @@ function acquireEnemyModel() {
   addm(box(9, 2.6, 2, '#20232b'), 0, 11.5, 12.6);               // grimace
   const stickL = limbCyl(1.6, 1.4, 15, '#caa66a'); stickL.position.set(-13, 24, 2); stickL.rotation.z = 0.7; grp.add(stickL); meshes.push(stickL);
   const stickR = limbCyl(1.6, 1.4, 15, '#caa66a'); stickR.position.set(13, 24, 2); stickR.rotation.z = -0.7; grp.add(stickR); meshes.push(stickR);
-  grp.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  grp.traverse(o => { if (o.isMesh) o.castShadow = true; });
   scene.add(grp);
   return { group: grp, body, stickL, stickR };
 }
@@ -817,6 +922,14 @@ const ThreeMode = {
 
     three.platGroup.scale.z = 0.05 + 0.95 * warp;
 
+    // Keep the shadow-casting light following the piper so shadows stay crisp
+    // and within the shadow frustum.
+    if (three.keyLight) {
+      three.keyLight.position.set(cam.tx - 300, cam.ty + 640, cam.tz + 420);
+      three.keyLight.target.position.set(cam.tx, cam.ty - 40, cam.tz);
+      three.keyLight.target.updateMatrixWorld();
+    }
+
     // Piper model.
     updatePiperModel();
 
@@ -844,7 +957,7 @@ const ThreeMode = {
       sh.position.set(p3.x, groundY + 0.6, p3.z);
       const fall = Math.max(0, Math.min(1, (p3.y - groundY) / 300));
       sh.scale.setScalar(Math.max(0.4, 1 - fall * 0.55));
-      sh.material.opacity = 0.32 * (1 - fall * 0.7) * warp;
+      sh.material.opacity = 0.16 * (1 - fall * 0.7) * warp;   // faint — real shadows do the rest
     } else sh.visible = false;
 
     // Coins.
