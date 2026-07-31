@@ -90,18 +90,6 @@ function makeSkyTexture(topC, botC) {
   return tex;
 }
 
-// ── pixel-art → CanvasTexture (enemies stay billboards) ─────────────────────
-function makeSpriteCanvas(w, h) {
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  const cx = c.getContext('2d');
-  cx.imageSmoothingEnabled = false;
-  const tex = new THREE.CanvasTexture(c);
-  tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return { c, cx, tex };
-}
-
 // ── 3D voxel piper model ────────────────────────────────────────────────────
 function mat(color, rough) { return new THREE.MeshStandardMaterial({ color, roughness: rough == null ? 0.72 : rough, metalness: 0.04 }); }
 function box(w, h, d, color, rough) { return new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, rough)); }
@@ -112,49 +100,83 @@ function limb(w, h, d, color) {
   return new THREE.Mesh(g, mat(color));
 }
 
+function cyl(rt, rb, h, color, seg) { return new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg || 14), mat(color)); }
+function sph(r, color) { return new THREE.Mesh(new THREE.SphereGeometry(r, 14, 12), mat(color)); }
+// A cylinder limb pivoted at its TOP (for hip / shoulder swing).
+function limbCyl(rt, rb, h, color) {
+  const geo = new THREE.CylinderGeometry(rt, rb, h, 12);
+  geo.translate(0, -h / 2, 0);
+  return new THREE.Mesh(geo, mat(color));
+}
+
 function buildPiperModel() {
   const pc = (typeof window !== 'undefined' && window.PLAYER_CUSTOM) || {};
   const skin = pc.skin || '#e8c8a0';
-  const jacket = pc.jacket || '#1a3a1a';
-  const jacketAcc = pc.jacketAccent || '#0f2a14';
-  const sock = pc.stockings || '#e8e8d8';
+  const jacket = pc.jacket || '#1f4a24';
+  const jacketAcc = pc.jacketAccent || '#123016';
+  const sock = pc.stockings || '#ece8d2';
   const beardCol = pc.beardColor || '#8b3a14';
-  const kilt = '#7d2b2b';       // tartan red
-  const hatCol = '#26407a';     // tam o' shanter blue
+  const kilt = '#8a3030', kiltDark = '#5e2020';   // tartan reds
+  const hatCol = '#2a4a8c';                        // tam o' shanter blue
   const g = new THREE.Group();
+  const parts = [];
+  const add = (m, x, y, z) => { if (x != null) m.position.set(x, y, z); parts.push(m); return m; };
 
-  const legL = limb(7, 18, 8, sock), legR = limb(7, 18, 8, sock);
-  legL.position.set(-5, 18, 0); legR.position.set(5, 18, 0);
-  const shoeL = box(8, 4, 11, '#241a12'), shoeR = box(8, 4, 11, '#241a12');
-  shoeL.position.set(-5, 2, 1.5); shoeR.position.set(5, 2, 1.5);
+  // Feet + rounded legs.
+  add(box(9, 5, 13, '#2a1c10'), -6, 3, 2.5);
+  add(box(9, 5, 13, '#2a1c10'), 6, 3, 2.5);
+  const legL = limbCyl(4.2, 3.6, 20, sock), legR = limbCyl(4.2, 3.6, 20, sock);
+  add(legL, -6, 23, 0); add(legR, 6, 23, 0);
+  add(cyl(4.6, 4.6, 2.5, kiltDark), -6, 26, 0);   // garter bands
+  add(cyl(4.6, 4.6, 2.5, kiltDark), 6, 26, 0);
 
-  const kiltMesh = box(24, 13, 14, kilt); kiltMesh.position.set(0, 21, 0);
-  const sporran = box(8, 7, 3, pc.sporran || '#5a3a18'); sporran.position.set(0, 19, 7.5);
-  const torso = box(20, 16, 11, jacket); torso.position.set(0, 34, 0);
-  const belt = box(21, 3, 12, jacketAcc); belt.position.set(0, 27, 0);
+  // Flared tartan kilt (cone) + tartan cross-stripes + sporran + belt.
+  add(cyl(10, 16.5, 17, kilt), 0, 20.5, 0);
+  add(cyl(10.4, 13, 3, kiltDark), 0, 24, 0);
+  add(cyl(13.5, 16.8, 3, kiltDark), 0, 14, 0);
+  const sporran = sph(5.5, pc.sporran || '#5a3a18'); sporran.scale.set(1, 0.9, 0.7); add(sporran, 0, 15, 10);
+  add(cyl(11.5, 11.5, 3.4, jacketAcc), 0, 29, 0);
 
-  const armL = limb(6, 16, 6, jacket), armR = limb(6, 16, 6, jacket);
-  armL.position.set(-12, 41, 0); armR.position.set(12, 41, 0);
+  // Torso (tapered) + shoulders + lapels.
+  add(cyl(9.5, 11, 16, jacket), 0, 38, 0);
+  add(sph(6, jacket), -9, 45, 0); add(sph(6, jacket), 9, 45, 0);
+  const lapel = box(9, 12, 2, jacketAcc); lapel.rotation.z = 0.12; add(lapel, 0, 40, 7);
 
-  const head = box(15, 14, 12, skin); head.position.set(0, 50, 0);
-  const beardMesh = (pc.beard && pc.beard !== 'clean') ? box(13, 6, 3, beardCol) : null;
-  if (beardMesh) beardMesh.position.set(0, 46, 6.2);
-  const hatBrim = box(20, 3, 18, hatCol); hatBrim.position.set(0, 57, 0);
-  const hatTop = box(15, 6, 15, hatCol); hatTop.position.set(0, 60.5, 0);
-  const pom = box(4, 4, 4, '#c0202c'); pom.position.set(0, 64.5, 0);
+  // Arms (rounded) + hands.
+  const armL = limbCyl(3.6, 3, 17, jacket), armR = limbCyl(3.6, 3, 17, jacket);
+  add(armL, -11.5, 46, 0); add(armR, 11.5, 46, 0);
+  add(sph(3.4, skin), -11.5, 29, 0); add(sph(3.4, skin), 11.5, 29, 0);
 
-  // Bagpipe: a bag on the chest + drone pipes over the shoulder.
-  const bag = box(11, 12, 8, '#35502a'); bag.position.set(11, 33, 4); bag.rotation.z = -0.25;
-  const pipe1 = limb(2.4, 20, 2.4, '#e8dfc4'); pipe1.position.set(-8, 46, 3); pipe1.rotation.z = 0.35; pipe1.rotation.x = -0.15;
-  const pipe2 = limb(2.4, 22, 2.4, '#e8dfc4'); pipe2.position.set(-11, 46, 4); pipe2.rotation.z = 0.45; pipe2.rotation.x = -0.1;
-  const pipe3 = limb(2.4, 17, 2.4, '#d8cfb0'); pipe3.position.set(-6, 46, 2); pipe3.rotation.z = 0.28;
+  // Head + face (eyes, nose, brows) + beard.
+  const head = sph(8.5, skin); head.scale.set(1, 1.05, 0.98); add(head, 0, 55, 0);
+  add(sph(1.9, '#20232b'), -3.4, 56.5, 7); add(sph(1.9, '#20232b'), 3.4, 56.5, 7);   // eyes
+  add(sph(1.1, '#ffffff'), -3.0, 57.0, 7.9); add(sph(1.1, '#ffffff'), 3.8, 57.0, 7.9); // eye glints
+  add(sph(2, skin), 0, 54, 8.4);                                                        // nose
+  if (!pc.beard || pc.beard !== 'clean') {
+    const beard = sph(7, beardCol); beard.scale.set(1, 0.7, 0.7); add(beard, 0, 49.5, 5.5);
+  }
+  add(box(9, 1.4, 2, beardCol), 0, 60, 7.6);   // brow/hair line under the hat
 
-  [legL, legR, shoeL, shoeR, kiltMesh, sporran, torso, belt, armL, armR, head, hatBrim, hatTop, pom, bag, pipe1, pipe2, pipe3]
-    .concat(beardMesh ? [beardMesh] : [])
-    .forEach(m => g.add(m));
+  // Tam o' shanter — brim, domed top, pom.
+  add(cyl(11, 11, 2.5, hatCol), 0, 62, 0);
+  const dome = sph(9, hatCol); dome.scale.set(1, 0.55, 1); add(dome, 0, 64.5, 0);
+  add(sph(2.6, '#c0202c'), 0, 68, 0);
 
+  // Bagpipe — ellipsoid bag under the arm + a blowpipe + three banded drones.
+  const bag = sph(8, '#38542c'); bag.scale.set(0.9, 1.15, 0.8); bag.rotation.z = -0.2; add(bag, 12, 40, 5);
+  const blow = cyl(1.1, 1.1, 15, '#caa66a'); blow.rotation.z = -0.9; add(blow, 15, 50, 6);
+  const droneCols = ['#efe6cc', '#e6dcbf', '#d8cdac'];
+  const droneH = [24, 21, 17];
+  for (let i = 0; i < 3; i++) {
+    const d = limbCyl(1.7, 1.5, droneH[i], droneCols[i]);
+    d.position.set(-9 - i * 2, 50, 3 - i); d.rotation.z = 0.4 + i * 0.06; d.rotation.x = -0.12;
+    add(d);
+    const band = cyl(2.1, 2.1, 2, '#3a2a16'); band.position.set(-9 - i * 2 - 4, 45, 3 - i); band.rotation.z = 0.4 + i * 0.06; add(band);
+  }
+
+  parts.forEach(m => g.add(m));
   g.traverse(o => { if (o.isMesh) o.castShadow = false; });
-  return { group: g, legL, legR, armL, armR, torso };
+  return { group: g, legL, legR, armL, armR, torso: head };
 }
 
 // Briefly show the 3D control scheme on entry (it differs from 2D), then fade.
@@ -316,22 +338,7 @@ function buildLevel(ld) {
   scene.fog = new THREE.Fog(skyBot.getHex(), 1200, 4400);
 }
 
-// ── enemy billboards + coins ────────────────────────────────────────────────
-function drawEnemySprite(spr, e, frame) {
-  const { c, cx, tex } = spr;
-  cx.clearRect(0, 0, c.width, c.height);
-  let drew = false;
-  try { if (typeof window.drawDrum32 === 'function') { window.drawDrum32(cx, 8, 8, e.v | 0, e.hp, e.maxHp, frame | 0, e._expr || null); drew = true; } } catch (err) {}
-  if (!drew) { cx.fillStyle = '#c0392b'; cx.fillRect(12, 12, 40, 40); }
-  tex.needsUpdate = true;
-}
-function acquireEnemy() {
-  const spr = makeSpriteCanvas(64, 64);
-  const mat2 = new THREE.MeshBasicMaterial({ map: spr.tex, transparent: true, alphaTest: 0.35, depthWrite: false });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(52, 52), mat2);
-  mesh.renderOrder = 9; scene.add(mesh);
-  return { sprite: mesh, spr };
-}
+// ── coins + enemies (3D) ────────────────────────────────────────────────────
 function acquireCoin() {
   const geo = new THREE.CylinderGeometry(9, 9, 3, 18);
   const m = new THREE.MeshStandardMaterial({ color: 0xf5c518, metalness: 0.7, roughness: 0.25, emissive: 0x5a4600, emissiveIntensity: 0.45 });
@@ -343,6 +350,34 @@ function acquireNote() {
     new THREE.MeshBasicMaterial({ color: 0xffffff }));
   mesh.renderOrder = 8; scene.add(mesh);
   return { mesh };
+}
+
+// Per-variant drum tint (falls back to the classic red).
+function variantColor(v) {
+  const map = { 0: '#c0392b', 1: '#2a9d8f', 2: '#8e44ad', 3: '#e67e22', 4: '#c0392b', 5: '#16a085', 6: '#a93226', 12: '#7f8c8d', 13: '#9b59b6', 14: '#e74c3c', 15: '#f1c40f' };
+  return map[v] != null ? map[v] : '#c0392b';
+}
+
+// A 3D "drum" enemy: barrel drum body with rims + an angry face + drumstick
+// arms + feet. Replaces the old flat billboard. Tinted per variant at render.
+function acquireEnemyModel() {
+  const grp = new THREE.Group();
+  const meshes = [];
+  const addm = (m, x, y, z) => { m.position.set(x, y, z); meshes.push(m); grp.add(m); return m; };
+  addm(box(7, 4, 9, '#241a12'), -6, 2, 1); addm(box(7, 4, 9, '#241a12'), 6, 2, 1);
+  const body = cyl(13, 13, 20, '#c0392b', 18); addm(body, 0, 15, 0);
+  addm(cyl(14, 14, 3, '#efe6cc'), 0, 25, 0); addm(cyl(14, 14, 3, '#efe6cc'), 0, 5, 0);
+  addm(cyl(13.4, 13.4, 4, '#ecf0f1'), 0, 15, 0);                 // centre band
+  addm(sph(2.6, '#20232b'), -4.5, 18, 12.5); addm(sph(2.6, '#20232b'), 4.5, 18, 12.5); // eyes
+  addm(sph(1.1, '#ffffff'), -4, 18.6, 13.3); addm(sph(1.1, '#ffffff'), 5, 18.6, 13.3); // glints
+  const brow1 = box(6, 1.6, 2, '#20232b'); brow1.rotation.z = -0.35; addm(brow1, -4.5, 21, 12.6);
+  const brow2 = box(6, 1.6, 2, '#20232b'); brow2.rotation.z = 0.35; addm(brow2, 4.5, 21, 12.6);
+  addm(box(9, 2.6, 2, '#20232b'), 0, 11.5, 12.6);               // grimace
+  const stickL = limbCyl(1.6, 1.4, 15, '#caa66a'); stickL.position.set(-13, 24, 2); stickL.rotation.z = 0.7; grp.add(stickL); meshes.push(stickL);
+  const stickR = limbCyl(1.6, 1.4, 15, '#caa66a'); stickR.position.set(13, 24, 2); stickR.rotation.z = -0.7; grp.add(stickR); meshes.push(stickR);
+  grp.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  scene.add(grp);
+  return { group: grp, body, stickL, stickR };
 }
 
 // ── collision + kill helpers ────────────────────────────────────────────────
@@ -737,23 +772,29 @@ const ThreeMode = {
       else cm.visible = false;
     }
 
-    // Enemy billboards (at their live 3D positions).
+    // Enemies as 3D drum models (at their live 3D positions).
     const foes = (window.enemies || []).filter(e => e && !e.dead && !e._dead);
-    while (three.enemies.length < foes.length) three.enemies.push(acquireEnemy());
+    while (three.enemies.length < foes.length) three.enemies.push(acquireEnemyModel());
     for (let i = 0; i < three.enemies.length; i++) {
       const em = three.enemies[i];
       if (i < foes.length) {
         const e = foes[i];
-        em.sprite.visible = true;
-        drawEnemySprite(em.spr, e, frame);
+        em.group.visible = true;
         const ew = e.w || 32, eh = e.h || 32;
         const ex = e._p3 ? e._p3.x : (e.x + ew / 2);
-        const ey = e._p3 ? (e._p3.y + eh / 2) : -(e.y + eh / 2);
+        const feetY = e._p3 ? e._p3.y : -(e.y + eh);
         const ez = e._p3 ? e._p3.z : 0;
-        em.sprite.scale.set(ew / 44, eh / 44, 1);
-        em.sprite.position.set(ex, ey, ez);
-        em.sprite.rotation.set(0, Math.atan2(camera.position.x - ex, camera.position.z - ez), 0);
-      } else em.sprite.visible = false;
+        em.group.scale.setScalar(Math.max(0.6, eh / 32));
+        em.group.position.set(ex, feetY, ez);
+        em.group.rotation.y = Math.atan2(p3.x - ex, p3.z - ez);   // face the piper
+        try {
+          em.body.material.color.set(variantColor(e.v | 0));
+          if (e.elite) { em.body.material.emissive.set('#5a4600'); em.body.material.emissiveIntensity = 0.5; }
+          else { em.body.material.emissiveIntensity = 0; }
+        } catch (_) {}
+        const beat = Math.sin(frame * 0.3 + i) * 0.45;            // drumming animation
+        em.stickL.rotation.z = 0.7 + beat; em.stickR.rotation.z = -0.7 - beat;
+      } else em.group.visible = false;
     }
 
     // Note projectiles.
