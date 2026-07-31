@@ -2249,6 +2249,70 @@
       "goalY": 330,
       "timePar": 300,
       "timeGold": 220
+    },
+    {
+      "name": "THE HIGH ROAD",
+      "width": 3200,
+      "mode3d": true,
+      "bgColors": ["#243f6e", "#4b7fb8"],
+      "skyStars": false,
+      "platColors": ["#2a4d1c", "#3a6a26", "#508f33", "#63b040", "#7bd155"],
+      "voidFloor": true,
+      "voidY": 800,
+      "startX": 120,
+      "startY": 360,
+      "platforms": [
+        { "x": 0, "y": 480, "w": 440, "h": 180, "zc": 0, "zd": 200 },
+
+        { "x": 760, "y": 480, "w": 420, "h": 180, "zc": 0, "zd": 200 },
+
+        { "x": 1180, "y": 480, "w": 320, "h": 180, "zc": 0, "zd": 200 },
+        { "x": 1230, "y": 236, "w": 340, "h": 30, "zc": 0, "zd": 170 },
+
+        { "x": 1640, "y": 250, "w": 480, "h": 44, "zc": 0, "zd": 240 },
+
+        { "x": 2160, "y": 300, "w": 130, "h": 24, "zc": -130, "zd": 75 },
+        { "x": 2350, "y": 262, "w": 130, "h": 24, "zc": 120, "zd": 75 },
+        { "x": 2540, "y": 222, "w": 130, "h": 24, "zc": -90, "zd": 75 },
+        { "x": 2730, "y": 186, "w": 150, "h": 24, "zc": 70, "zd": 85 },
+
+        { "x": 2940, "y": 168, "w": 380, "h": 70, "zc": 0, "zd": 210 }
+      ],
+      "coins": [
+        { "x": 160, "y": 448, "z": 0 }, { "x": 300, "y": 448, "z": -120 },
+        { "x": 560, "y": 400, "z": 0 }, { "x": 640, "y": 380, "z": 0 },
+        { "x": 900, "y": 448, "z": 120 }, { "x": 1040, "y": 448, "z": -120 },
+        { "x": 1300, "y": 300, "z": 0 }, { "x": 1400, "y": 206, "z": 0 },
+        { "x": 1720, "y": 220, "z": -160 }, { "x": 1860, "y": 220, "z": 160 },
+        { "x": 2160, "y": 268, "z": -130 }, { "x": 2350, "y": 230, "z": 120 },
+        { "x": 2540, "y": 190, "z": -90 }, { "x": 2730, "y": 154, "z": 70 },
+        { "x": 3020, "y": 132, "z": 0 }, { "x": 3120, "y": 132, "z": -110 }
+      ],
+      "enemies": [
+        { "x": 300, "y": 448, "v": 0, "hp": 3 },
+        { "x": 1560, "y": 214, "v": 0, "hp": 3 },
+        { "x": 1700, "y": 214, "v": 1, "hp": 3 },
+        { "x": 1820, "y": 214, "v": 0, "hp": 3 },
+        { "x": 1760, "y": 214, "v": 14, "hp": 4 }
+      ],
+      "powerupItems": [
+        { "x": 1180, "y": 448, "type": "heal" }
+      ],
+      "spiritEmbers": [
+        { "x": 1400, "y": 206, "collected": false, "idx": 0 },
+        { "x": 2350, "y": 230, "collected": false, "idx": 1 },
+        { "x": 3120, "y": 132, "collected": false, "idx": 2 }
+      ],
+      "signs": [
+        { "x": 60, "y": 360, "w": 340, "title": "THE HIGH ROAD", "lines": ["A 3D GAUNTLET.", "USE EVERY ABILITY.", "SEE CONTROLS TOP-LEFT."], "color": "#8ec7ff" },
+        { "x": 470, "y": 360, "w": 300, "title": "DASH THE GAP", "lines": ["TOO WIDE TO JUMP.", "SPRINT + E TO CHARGE ACROSS."], "color": "#ffd27f" },
+        { "x": 1180, "y": 360, "w": 320, "title": "HOOK UP", "lines": ["THAT LEDGE IS TOO HIGH.", "PRESS H TO HOOK-SHOT UP."], "color": "#ffe08a" },
+        { "x": 1640, "y": 150, "w": 320, "title": "SKIRL THE CROWD", "lines": ["DRUMS AHEAD.", "PRESS F FOR A SHOCKWAVE."], "color": "#9fe0ff" }
+      ],
+      "goalX": 3080,
+      "goalY": 40,
+      "timePar": 320,
+      "timeGold": 230
     }
   ];
 })();

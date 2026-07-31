@@ -188,20 +188,23 @@ function showThreeHint() {
     if (!el) {
       el = document.createElement('div');
       el.id = 'three-hint';
-      el.style.cssText = 'position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:60;'
-        + "font-family:'Press Start 2P',monospace;font-size:8px;line-height:1.7;color:#eaf2ff;text-align:center;"
-        + 'background:rgba(10,14,30,0.66);border:1px solid rgba(150,180,255,0.4);border-radius:10px;'
-        + 'padding:9px 14px;pointer-events:none;transition:opacity .6s ease;backdrop-filter:blur(4px);';
-      el.innerHTML = '💠 3D MODE'
-        + '<br>WASD MOVE · SPACE JUMP · ESC PAUSE'
-        + '<br>Q SHOOT · E CHARGE · F SKIRL · R DRONE'
-        + '<br>ARROWS / MOUSE (CLICK TO LOOK) — CAMERA';
+      el.style.cssText = 'position:absolute;left:10px;top:70px;z-index:60;'
+        + "font-family:'Press Start 2P',monospace;font-size:7px;line-height:1.9;color:#eaf2ff;text-align:left;"
+        + 'background:rgba(10,14,30,0.6);border:1px solid rgba(150,180,255,0.35);border-radius:8px;'
+        + 'padding:8px 10px;pointer-events:none;transition:opacity .6s ease;';
+      el.innerHTML = '💠 3D CONTROLS'
+        + '<br>WASD MOVE · SPACE ×2 JUMP'
+        + '<br>Q SHOOT · E CHARGE'
+        + '<br>F SKIRL · R DRONE · H HOOK'
+        + '<br>MOUSE / ARROWS LOOK · ESC PAUSE';
       wrap.appendChild(el);
     }
     el.style.display = '';
     el.style.opacity = '1';
+    // Stay as a dim persistent legend after the intro so the keys are always
+    // discoverable (the ability keys differ from 2D).
     clearTimeout(showThreeHint._t);
-    showThreeHint._t = setTimeout(() => { el.style.opacity = '0'; }, 4200);
+    showThreeHint._t = setTimeout(() => { if (el) el.style.opacity = '0.5'; }, 5500);
   } catch (e) {}
 }
 
@@ -231,7 +234,7 @@ function ensureInit(W, H) {
     const rim = new THREE.DirectionalLight(0xa8c8ff, 0.7); rim.position.set(420, 200, -340); scene.add(rim);
     const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(120, 120, 520); scene.add(fill);
 
-    three = { platGroup: new THREE.Group(), coins: [], enemies: [], notes: [], player: null, shadow: null, skirlRing: null };
+    three = { platGroup: new THREE.Group(), coins: [], enemies: [], notes: [], player: null, shadow: null, skirlRing: null, hookLine: null };
     scene.add(three.platGroup);
 
     // 3D piper.
@@ -250,6 +253,12 @@ function ensureInit(W, H) {
       new THREE.MeshBasicMaterial({ color: 0x9fe0ff, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }));
     ring.rotation.x = -Math.PI / 2; ring.renderOrder = 6; ring.visible = false;
     scene.add(ring); three.skirlRing = ring;
+
+    // Hook-shot rope.
+    const hookLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+      new THREE.LineBasicMaterial({ color: 0xffe08a }));
+    hookLine.visible = false; hookLine.renderOrder = 7; scene.add(hookLine); three.hookLine = hookLine;
 
     attachCameraControls(cv);
     inited = true;
@@ -472,8 +481,31 @@ function collect3DCoins() {
 // The 2D abilities live in updatePlayer (bypassed in 3D), so 3D gets its own
 // lightweight versions: fire note projectiles forward, dash, and a skirl AOE.
 let notes3d = [];                 // {x,y,z,vx,vy,vz,life,col}
-let shootCd = 0, dashCd = 0, skirlCd = 0;
+let shootCd = 0, dashCd = 0, skirlCd = 0, hookCd = 0;
 let skirlFx = 0;                  // expanding-ring visual timer
+let dashTimer = 0, dashDirX = 0, dashDirZ = 0;   // Highland Charge burst
+const hook = { active: false, tx: 0, ty: 0, tz: 0 };  // hook-shot zip target
+const DASH_SPD = 13;
+
+// Find the best hook-shot target: the closest platform-top that's ahead of the
+// piper (in facing) or above it, within range. Returns {x,y,z} on the top, or null.
+function findHookTarget() {
+  const fx = Math.sin(p3.yaw), fz = Math.cos(p3.yaw);
+  let best = null, bestScore = 1e9;
+  for (const b of boxes) {
+    const cx = (b.x0 + b.x1) / 2, cz = (b.z0 + b.z1) / 2, ty = b.y1;
+    const dx = cx - p3.x, dz = cz - p3.z, dyTop = ty - p3.y;
+    const horiz = Math.hypot(dx, dz);
+    const dist = Math.hypot(dx, dyTop, dz);
+    if (dist < 70 || dist > 620) continue;                 // too close / out of range
+    const ahead = horiz > 1 ? (dx / horiz) * fx + (dz / horiz) * fz : 0;
+    const isAbove = dyTop > 50;
+    if (ahead < 0.35 && !isAbove) continue;                 // must be roughly ahead or above
+    const score = dist - (isAbove ? 120 : 0) - ahead * 60;  // prefer higher / more-ahead
+    if (score < bestScore) { bestScore = score; best = { x: cx, y: ty, z: cz }; }
+  }
+  return best;
+}
 
 function noteColor() {
   try { if (typeof window.pickNoteColor === 'function') { const c = window.pickNoteColor(); if (c) return c; } } catch (e) {}
@@ -489,8 +521,8 @@ function fireNote(angleOffset) {
 
 function tickAbilities() {
   const K = window.K || {}, JP = window.JP || {};
-  if (shootCd > 0) shootCd--; if (dashCd > 0) dashCd--; if (skirlCd > 0) skirlCd--;
-  if (skirlFx > 0) skirlFx -= 0.06;
+  if (shootCd > 0) shootCd--; if (dashCd > 0) dashCd--; if (skirlCd > 0) skirlCd--; if (hookCd > 0) hookCd--;
+  if (skirlFx > 0) skirlFx -= 0.05;
   const armed = warp > 0.5;
 
   // Q — shoot notes (hold to auto-fire). R — drone (3-note spread).
@@ -502,25 +534,39 @@ function tickAbilities() {
     try { if (window.sfx) window.sfx('shoot'); } catch (e) {}
   }
 
-  // E — Highland Charge (forward dash).
-  if (armed && JP['KeyE'] && dashCd <= 0) {
-    dashCd = 42;
-    const fx = Math.sin(p3.yaw), fz = Math.cos(p3.yaw);
-    p3.vx += fx * 11; p3.vz += fz * 11;
+  // E — Highland Charge: a real sustained dash burst in the facing direction
+  // (with brief i-frames), not just a nudge.
+  if (armed && JP['KeyE'] && dashCd <= 0 && !hook.active) {
+    dashCd = 40; dashTimer = 12;
+    dashDirX = Math.sin(p3.yaw); dashDirZ = Math.cos(p3.yaw);
+    if (window.player) window.player.invincible = Math.max(window.player.invincible | 0, 16);
     try { if (window.sfx) window.sfx('charge'); } catch (e) {}
   }
 
-  // F — Skirl Blast (radial shockwave).
+  // F — Skirl Blast: big radial shockwave that damages AND knocks back foes.
   if (armed && JP['KeyF'] && skirlCd <= 0) {
-    skirlCd = 38; skirlFx = 1;
+    skirlCd = 40; skirlFx = 1;
     for (const e of (window.enemies || [])) {
       if (!e || e.dead || !e._p3) continue;
-      if (Math.hypot(e._p3.x - p3.x, e._p3.z - p3.z) < 100) {
-        e.hp = (typeof e.hp === 'number' ? e.hp : 1) - 2;
+      const dx = e._p3.x - p3.x, dz = e._p3.z - p3.z, dd = Math.hypot(dx, dz);
+      if (dd < 150) {
+        e.hp = (typeof e.hp === 'number' ? e.hp : 1) - 3;
+        const k = dd > 1 ? 9 / dd : 0;
+        e._p3.vx = dx * k * 1.4; e._p3.vz = dz * k * 1.4; e._p3.vy = 7;   // knockback
         if (e.hp <= 0) { e.dead = true; killCredit(e); }
       }
     }
+    try { if (window.addShake) window.addShake(6); } catch (e) {}
     try { if (window.sfx) window.sfx('skirl'); } catch (e) {}
+  }
+
+  // H — Hook Shot: zip to the nearest platform-top ahead/above.
+  if (armed && JP['KeyH'] && hookCd <= 0 && !hook.active) {
+    const t = findHookTarget();
+    if (t) {
+      hook.active = true; hook.tx = t.x; hook.ty = t.y; hook.tz = t.z; hookCd = 45;
+      try { if (window.sfx) window.sfx('charge'); } catch (e) {}
+    }
   }
 
   // Advance note projectiles + resolve enemy hits.
@@ -573,6 +619,22 @@ function tickController() {
   const cf = { x: Math.sin(cam.yaw), z: Math.cos(cam.yaw) };   // camera forward
   const cr = { x: -Math.cos(cam.yaw), z: Math.sin(cam.yaw) };  // camera right
 
+  // Hook-shot zip: fly straight to the target, ignoring gravity + collision.
+  if (hook.active) {
+    const dx = hook.tx - p3.x, dy = hook.ty - p3.y, dz = hook.tz - p3.z;
+    const dist = Math.hypot(dx, dy, dz);
+    if (dist < 28) {
+      p3.x = hook.tx; p3.y = hook.ty; p3.z = hook.tz;
+      p3.vx = p3.vy = p3.vz = 0; p3.grounded = true; p3.jumps = 0; hook.active = false;
+    } else {
+      const f = 0.26;
+      p3.x += dx * f; p3.y += dy * f; p3.z += dz * f;
+      if (Math.abs(dx) + Math.abs(dz) > 1) p3.yaw = angleLerp(p3.yaw, Math.atan2(dx, dz), 0.3);
+    }
+    if (player) { player.x = p3.x - PWc / 2; player.y = -p3.y - PHc; }
+    return;
+  }
+
   const locked = warp < 0.45;
   let wx = 0, wz = 0, moving = false;
   if (!locked && (inF || inS)) {
@@ -589,10 +651,16 @@ function tickController() {
     if (camDragCd <= 0 && inF > 0) cam.yaw = angleLerp(cam.yaw, p3.yaw, 0.035);
   }
 
-  const ctl = p3.grounded ? 1 : AIR_CTL;
-  p3.vx += ((wx * MOVE) - p3.vx) * ACCEL * ctl;
-  p3.vz += ((wz * MOVE) - p3.vz) * ACCEL * ctl;
-  if (!moving && p3.grounded) { p3.vx *= 0.6; p3.vz *= 0.6; }
+  if (dashTimer > 0) {
+    dashTimer--;                                  // Highland Charge: forced burst
+    p3.vx = dashDirX * DASH_SPD; p3.vz = dashDirZ * DASH_SPD;
+    p3.yaw = angleLerp(p3.yaw, Math.atan2(dashDirX, dashDirZ), 0.4);
+  } else {
+    const ctl = p3.grounded ? 1 : AIR_CTL;
+    p3.vx += ((wx * MOVE) - p3.vx) * ACCEL * ctl;
+    p3.vz += ((wz * MOVE) - p3.vz) * ACCEL * ctl;
+    if (!moving && p3.grounded) { p3.vx *= 0.6; p3.vz *= 0.6; }
+  }
 
   // Walk cycle.
   const speed = Math.hypot(p3.vx, p3.vz);
@@ -676,8 +744,9 @@ const ThreeMode = {
 
   reset() {
     mode = '2d'; warp = 0; warpTarget = 0; drag = null; camDragCd = 0;
-    notes3d = []; shootCd = dashCd = skirlCd = 0; skirlFx = 0;
+    notes3d = []; shootCd = dashCd = skirlCd = hookCd = 0; skirlFx = 0; dashTimer = 0; hook.active = false;
     if (three && three.notes) three.notes.forEach(n => { n.mesh.visible = false; });
+    if (three && three.hookLine) three.hookLine.visible = false;
     try { (window.enemies || []).forEach(e => { if (e) e._p3 = null; }); } catch (err) {}
     try { if (document.pointerLockElement) document.exitPointerLock(); } catch (e) {}
     const cv = document.getElementById('three-canvas');
@@ -750,6 +819,17 @@ const ThreeMode = {
 
     // Piper model.
     updatePiperModel();
+
+    // Hook-shot rope.
+    if (three.hookLine) {
+      if (hook.active) {
+        three.hookLine.visible = true;
+        const pos = three.hookLine.geometry.attributes.position;
+        pos.setXYZ(0, p3.x, p3.y + 42, p3.z);
+        pos.setXYZ(1, hook.tx, hook.ty, hook.tz);
+        pos.needsUpdate = true;
+      } else three.hookLine.visible = false;
+    }
 
     // Shadow onto the platform beneath the piper.
     let groundY = -2600;
@@ -825,7 +905,7 @@ const ThreeMode = {
     renderer.render(scene, camera);
   },
 
-  _dbg() { return { THREE, scene, renderer, camera, three, cam, p3, mode, warp, boxes, camDragCd }; },
+  _dbg() { return { THREE, scene, renderer, camera, three, cam, p3, mode, warp, boxes, camDragCd, hook, findHookTarget }; },
 
   resize(W, H) {
     if (!inited || !renderer) return;
