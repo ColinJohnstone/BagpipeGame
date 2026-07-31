@@ -346,10 +346,12 @@ function acquireCoin() {
   return { mesh };
 }
 function acquireNote() {
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(6, 10, 10),
-    new THREE.MeshBasicMaterial({ color: 0xffffff }));
-  mesh.renderOrder = 8; scene.add(mesh);
-  return { mesh };
+  const grp = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.SphereGeometry(7, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(12, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28, depthWrite: false }));
+  grp.add(core); grp.add(glow);
+  grp.renderOrder = 8; scene.add(grp);
+  return { mesh: grp, core, glow };
 }
 
 // Per-variant drum tint (falls back to the classic red).
@@ -454,8 +456,8 @@ function collect3DCoins() {
   const pcx = p3.x, pcy = p3.y + P_HEIGHT / 2, pcz = p3.z;
   for (const c of cols) {
     if (c.collected || (c.type && c.type !== 'coin')) continue;
-    const cx = c.x + 8, cy = -(c.y + 8);
-    const dx = pcx - cx, dy = pcy - cy, dz = pcz - 0;
+    const cx = c.x + 8, cy = -(c.y + 8), cz = c.z || 0;   // coins may sit off the 2D plane in 3D
+    const dx = pcx - cx, dy = pcy - cy, dz = pcz - cz;
     if (dx * dx + dy * dy + dz * dz < 46 * 46) {
       c.collected = true;
       try { window.coins = (window.coins | 0) + 1; } catch (e) {}
@@ -547,6 +549,7 @@ function tickController() {
   const player = window.player;
   if (player && player.invincible > 0) player.invincible--;
   if (camDragCd > 0) camDragCd--;
+  if (p3.grounded) p3.jumps = 0;   // reset the jump count on landing (for double jump)
 
   const K = window.K || {}, JP = window.JP || {};
   // ── 3D has its OWN control scheme, deliberately separate from 2D ──
@@ -595,9 +598,10 @@ function tickController() {
   const speed = Math.hypot(p3.vx, p3.vz);
   if (p3.grounded && speed > 0.4) p3.stepPhase += 0.35; else p3.stepPhase *= 0.8;
 
-  // Jump — Space (3D's own jump key).
-  if (!locked && p3.grounded && JP['Space']) {
-    p3.vy = JUMP_V; p3.grounded = false;
+  // Jump — Space, with DOUBLE jump (and the extra-jump perk on top).
+  const maxJumps = 2 + ((player && player._extraJumps) ? player._extraJumps : 0);
+  if (!locked && JP['Space'] && (p3.jumps || 0) < maxJumps) {
+    p3.vy = JUMP_V; p3.grounded = false; p3.jumps = (p3.jumps || 0) + 1;
     try { if (typeof window.sfx === 'function') window.sfx('jump'); } catch (e) {}
   }
 
@@ -659,7 +663,7 @@ const ThreeMode = {
     showThreeHint();
     const player = window.player || { x: 40, y: 300 };
     p3.x = player.x + PWc / 2; p3.y = -(player.y + PHc); p3.z = 0;
-    p3.vx = p3.vy = p3.vz = 0; p3.grounded = false; p3.yaw = FACE_X; p3.stepPhase = 0;
+    p3.vx = p3.vy = p3.vz = 0; p3.grounded = false; p3.yaw = FACE_X; p3.stepPhase = 0; p3.jumps = 0;
     p3.lgx = p3.x; p3.lgy = p3.y; p3.lgz = 0;
     // Camera looks down the level's length (+x), so "forward" advances the
     // level exactly like walking right in 2D; strafe (A/D) dodges laterally.
@@ -768,7 +772,7 @@ const ThreeMode = {
     while (three.coins.length < coins.length) three.coins.push(acquireCoin());
     for (let i = 0; i < three.coins.length; i++) {
       const cm = three.coins[i].mesh;
-      if (i < coins.length) { const c = coins[i]; cm.visible = true; cm.position.set(c.x + 8, -(c.y + 8), 0); cm.rotation.z = frame * 0.12 + i; }
+      if (i < coins.length) { const c = coins[i]; cm.visible = true; cm.position.set(c.x + 8, -(c.y + 8), c.z || 0); cm.rotation.z = frame * 0.12 + i; }
       else cm.visible = false;
     }
 
@@ -800,9 +804,12 @@ const ThreeMode = {
     // Note projectiles.
     while (three.notes.length < notes3d.length) three.notes.push(acquireNote());
     for (let i = 0; i < three.notes.length; i++) {
-      const nm = three.notes[i].mesh;
-      if (i < notes3d.length) { const n = notes3d[i]; nm.visible = true; nm.position.set(n.x, n.y, n.z); try { nm.material.color.set(n.col); } catch (e) {} }
-      else nm.visible = false;
+      const nt = three.notes[i];
+      if (i < notes3d.length) {
+        const n = notes3d[i];
+        nt.mesh.visible = true; nt.mesh.position.set(n.x, n.y, n.z);
+        try { nt.core.material.color.set(n.col); nt.glow.material.color.set(n.col); } catch (e) {}
+      } else nt.mesh.visible = false;
     }
 
     // Skirl shockwave ring.
