@@ -226,6 +226,34 @@ function buildPiperModel() {
   return { group: g, legL, legR, armL, armR, torso: head };
 }
 
+// ── goal castle — the visible "end of level" landmark, with a light beacon ───
+function buildGoalCastle() {
+  const g = new THREE.Group();
+  const stone = '#cfc9b2', stoneD = '#a9a288', roof = '#8a3b3b', doorC = '#3a2a18';
+  const keep = box(72, 92, 62, stone); keep.position.y = 46; g.add(keep);
+  const band = box(74, 10, 64, stoneD); band.position.y = 70; g.add(band);
+  for (let i = -1; i <= 1; i++) { const b = box(16, 14, 62, stoneD); b.position.set(i * 26, 98, 0); g.add(b); }   // battlements
+  const towers = [[-42, -28], [42, -28], [-42, 28], [42, 28]];
+  for (const [tx, tz] of towers) {
+    const t = cyl(15, 17, 118, stone, 12); t.position.set(tx, 59, tz); g.add(t);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(21, 30, 12), mat(roof)); cap.position.set(tx, 133, tz); g.add(cap);
+  }
+  // Door + glowing portal on the -x face (players arrive travelling +x).
+  const doorM = box(28, 46, 8, doorC); doorM.position.set(-37, 23, 0); g.add(doorM);
+  const portal = new THREE.Mesh(new THREE.PlaneGeometry(22, 38), new THREE.MeshBasicMaterial({ color: 0x9fe6ff, transparent: true, opacity: 0.7, side: THREE.DoubleSide }));
+  portal.position.set(-41.5, 23, 0); portal.rotation.y = Math.PI / 2; g.add(portal);
+  // Flag on a central pole.
+  const pole = cyl(1.6, 1.6, 54, '#5a4a3a'); pole.position.set(0, 126, 0); g.add(pole);
+  const flag = box(34, 20, 2, '#c0202c'); flag.position.set(18, 146, 0); g.add(flag);
+  // Beacon: a tall translucent light column so the goal is visible from afar.
+  const beacon = new THREE.Mesh(new THREE.CylinderGeometry(12, 30, 760, 14, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffe27a, transparent: true, opacity: 0.13, side: THREE.DoubleSide, depthWrite: false }));
+  beacon.position.y = 420; g.add(beacon);
+  g.traverse(o => { if (o.isMesh && o !== beacon && o !== portal) o.castShadow = true; });
+  g.visible = false;
+  return { group: g, beacon, flag, portal };
+}
+
 // Briefly show the 3D control scheme on entry (it differs from 2D), then fade.
 function showThreeHint() {
   try {
@@ -291,7 +319,7 @@ function ensureInit(W, H) {
     const rim = new THREE.DirectionalLight(0xa8c8ff, 0.55); rim.position.set(420, 200, -340); scene.add(rim);
     const fill = new THREE.DirectionalLight(0xffffff, 0.4); fill.position.set(120, 120, 520); scene.add(fill);
 
-    three = { platGroup: new THREE.Group(), decoGroup: new THREE.Group(), coins: [], enemies: [], notes: [], player: null, shadow: null, skirlRing: null, hookLine: null, keyLight: key };
+    three = { platGroup: new THREE.Group(), decoGroup: new THREE.Group(), coins: [], enemies: [], notes: [], player: null, shadow: null, skirlRing: null, hookLine: null, keyLight: key, goal: null };
     scene.add(three.platGroup); scene.add(three.decoGroup);
 
     // 3D piper.
@@ -316,6 +344,9 @@ function ensureInit(W, H) {
       new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
       new THREE.LineBasicMaterial({ color: 0xffe08a }));
     hookLine.visible = false; hookLine.renderOrder = 7; scene.add(hookLine); three.hookLine = hookLine;
+
+    // Goal castle (the visible end-of-level landmark).
+    three.goal = buildGoalCastle(); scene.add(three.goal.group);
 
     attachCameraControls(cv);
     inited = true;
@@ -959,6 +990,17 @@ const ThreeMode = {
       sh.scale.setScalar(Math.max(0.4, 1 - fall * 0.55));
       sh.material.opacity = 0.16 * (1 - fall * 0.7) * warp;   // faint — real shadows do the rest
     } else sh.visible = false;
+
+    // Goal castle — the visible end-of-level landmark + light beacon.
+    if (three.goal) {
+      const gr = window.goalRect;
+      if (gr && isFinite(gr.x) && isFinite(gr.y)) {
+        three.goal.group.visible = true;
+        three.goal.group.position.set(gr.x + (gr.w || 100) / 2, -(gr.y + (gr.h || 140)), 0);
+        three.goal.flag.rotation.y = Math.sin(frame * 0.14) * 0.28;
+        three.goal.beacon.material.opacity = (0.1 + Math.sin(frame * 0.08) * 0.05) * warp;
+      } else three.goal.group.visible = false;
+    }
 
     // Coins.
     const coins = (window.collectibles || []).filter(c => !c.collected && (c.type === 'coin' || !c.type));
