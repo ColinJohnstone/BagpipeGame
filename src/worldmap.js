@@ -416,6 +416,18 @@
         worlds: ac,
       });
     }
+    // THE PRISM DIMENSION — the 3D platformer levels (Highland Prism)
+    const pd = ws.map((w, i) => ({ w, i })).filter(x => x.w && x.w.category === '3d');
+    if (pd.length > 0) {
+      out.push({
+        key: '3d',
+        name: 'THE PRISM DIMENSION',
+        emoji: '💠',
+        color: '#b06bff',
+        glow: '#b06bff66',
+        worlds: pd,
+      });
+    }
     // GENERATED (only if it has any rolls) — sits before TUTORIAL
     // so the galaxy order reads OG → NEW → EXPANSION → GENERATED →
     // TUTORIAL from left to right.

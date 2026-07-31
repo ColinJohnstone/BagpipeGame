@@ -2757,6 +2757,7 @@
   <script src="levels/world-37-the-hollowing.js"></script>
   <script src="levels/world-38-starfall-causeway.js"></script>
   <script src="levels/world-39-the-apex.js"></script>
+  <script src="levels/world-3d-prism.js"></script>
   <script src="levels/tutorial.js"></script>
 </head>
 
@@ -9389,6 +9390,24 @@
       levels: (typeof window !== 'undefined' && Array.isArray(window.LEVELS_TUTORIAL))
         ? window.LEVELS_TUTORIAL.map(l => Object.assign({}, l))
         : buildTutorialLevels(),
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    //  THE PRISM DIMENSION — the dedicated 3D platformer world.
+    //  Pushed LAST so it never shifts existing world indices. It gets its
+    //  own galaxy on the worldmap via category '3d'. Every level runs in
+    //  Three.js 3D mode; `biome` picks textures / sky / decorations.
+    // ═══════════════════════════════════════════════════════════════
+    WORLDS.push({
+      name: 'THE PRISM DIMENSION',
+      color: '#b06bff', borderColor: '#b06bff',
+      emoji: '💠',
+      desc: 'TRUE 3D PLATFORMER — GRASS, SKY & BEYOND',
+      alwaysOpen: true,
+      category: '3d',
+      levels: (typeof window !== 'undefined' && Array.isArray(window.LEVELS_W3D))
+        ? window.LEVELS_W3D.map(l => Object.assign({}, l))
+        : [],
     });
 
     // ── Apply any locally-saved level edits as runtime overrides ────────
