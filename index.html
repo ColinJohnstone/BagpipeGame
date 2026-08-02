@@ -2705,6 +2705,8 @@
   <!-- World map — 3D-style galaxy + world walk-around menu. Owns the
        canvas while GS === 'worldmap'. -->
   <script src="src/worldmap.js"></script>
+  <!-- Music player (jukebox) — window.MusicPlayer. -->
+  <script src="src/musicplayer.js"></script>
   <!-- ─── 3D dimension mode (Three.js, bundled by Vite) ──────────────
        The one true ES module in the project. Reads live 2D world state
        and re-renders it in perspective 3D when the Highland Prism is
@@ -2791,6 +2793,9 @@
       <button id="shop-chip" class="help-chip" title="Highland Market" aria-label="Shop"
         onclick="UI.openShop()"
         style="top:135px;font-size:14px;">🛒</button>
+      <button id="jukebox-chip" class="help-chip" title="Music Player" aria-label="Music player"
+        onclick="MusicPlayer.open()"
+        style="top:174px;font-size:14px;">🎵</button>
       <!-- Wallet readout: spendable coins + premium embers. Updated live
            via GameWallet.onChange (wired in the inline script). -->
       <div id="wallet-chip" title="Your spendable currency" aria-label="Wallet"
@@ -2953,6 +2958,35 @@
       <div style="display:flex;gap:10px;margin-top:10px;">
         <button class="btn red" onclick="UI.showScreen('s-title')">◀ BACK</button>
         <button class="btn" onclick="UI.openJourney()">🧭 JOURNEY</button>
+      </div>
+    </div>
+
+    <!-- ── Music Player (jukebox) ─────────────────────────────────────── -->
+    <div class="screen screen-bg-glass" id="s-musicplayer">
+      <div class="screen-title">— 🎵 MUSIC PLAYER —</div>
+      <div style="width:min(560px,94vw);display:flex;flex-direction:column;gap:12px;font-family:'Press Start 2P',monospace;">
+        <!-- Now playing -->
+        <div style="background:rgba(0,0,0,.34);border:1px solid #2a2a4a;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:8px;color:#7fa8d8;">NOW PLAYING</div>
+          <div id="mp-title" style="font-size:11px;color:#ffe27a;line-height:1.5;min-height:18px;">—</div>
+          <input id="mp-seek" type="range" min="0" max="1000" value="0" step="1" style="width:100%;accent-color:#b06bff;cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;font-size:7px;color:#8fa;color:#88a;">
+            <span id="mp-cur">0:00</span><span id="mp-dur">0:00</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:12px;">
+            <button class="btn btn-icon" id="mp-shuffle" title="Shuffle" style="font-size:12px;flex:0 0 auto;width:48px;min-width:0;padding:10px 0;">🔀</button>
+            <button class="btn btn-icon" id="mp-prev" title="Previous" style="font-size:14px;flex:0 0 auto;width:48px;min-width:0;padding:10px 0;">⏮</button>
+            <button class="btn btn-icon" id="mp-playpause" title="Play/Pause" style="font-size:16px;flex:0 0 auto;width:60px;min-width:0;padding:10px 0;">▶</button>
+            <button class="btn btn-icon" id="mp-next" title="Next" style="font-size:14px;flex:0 0 auto;width:48px;min-width:0;padding:10px 0;">⏭</button>
+            <button class="btn btn-icon" id="mp-loop" title="Loop" style="font-size:12px;flex:0 0 auto;width:48px;min-width:0;padding:10px 0;">🔁</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:7px;color:#88a;">
+            🔈<input id="mp-vol" type="range" min="0" max="100" value="80" step="1" style="flex:1;accent-color:#b06bff;cursor:pointer;">
+          </div>
+        </div>
+        <!-- Track list -->
+        <div id="mp-list" style="background:rgba(0,0,0,.3);border:1px solid #2a2a4a;border-radius:12px;max-height:min(300px,42vh);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#3a3a6a #0a0a1a;"></div>
+        <button class="btn red" onclick="MusicPlayer.close()" style="align-self:flex-start;">◀ BACK</button>
       </div>
     </div>
 
