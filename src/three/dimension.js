@@ -59,7 +59,19 @@ let camDragCd = 0;
 const p3 = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, grounded: false, yaw: 0, stepPhase: 0, lgx: 0, lgy: 0, lgz: 0 };
 
 let boxes = [];
+let movers = [];       // moving platforms: {box, mesh, bx,by,bz, axis, dist, speed, ph}
+let spikes3d = [];     // spike hazards: {x, y, z, r}
+const BOUNCE_V = 21;   // bounce-pad launch velocity
 let levelSig = '';
+
+// Damage the piper (contact hazards / lava / spikes). Respects i-frames.
+function hurtPlayer() {
+  const p = window.player;
+  if (!p || p.invincible > 0) return;
+  p.hp -= 1; p.invincible = 72; p._lastHp = p.hp;
+  try { if (window.sfx) window.sfx('player_hit'); } catch (e) {}
+  try { if (window.addShake) window.addShake(6); } catch (e) {}
+}
 let PWc = 32, PHc = 50;
 let drag = null;
 
@@ -319,8 +331,8 @@ function ensureInit(W, H) {
     const rim = new THREE.DirectionalLight(0xa8c8ff, 0.55); rim.position.set(420, 200, -340); scene.add(rim);
     const fill = new THREE.DirectionalLight(0xffffff, 0.4); fill.position.set(120, 120, 520); scene.add(fill);
 
-    three = { platGroup: new THREE.Group(), decoGroup: new THREE.Group(), coins: [], enemies: [], notes: [], player: null, shadow: null, skirlRing: null, hookLine: null, keyLight: key, goal: null };
-    scene.add(three.platGroup); scene.add(three.decoGroup);
+    three = { platGroup: new THREE.Group(), decoGroup: new THREE.Group(), hazGroup: new THREE.Group(), coins: [], enemies: [], notes: [], player: null, shadow: null, skirlRing: null, hookLine: null, keyLight: key, goal: null };
+    scene.add(three.platGroup); scene.add(three.decoGroup); scene.add(three.hazGroup);
 
     // 3D piper.
     const model = buildPiperModel();
@@ -404,7 +416,8 @@ function buildLevel(ld) {
     if (m.geometry) m.geometry.dispose();
     if (m.material) { const mm = m.material; (Array.isArray(mm) ? mm : [mm]).forEach(x => x.dispose()); }
   }
-  boxes = [];
+  boxes = []; movers = []; spikes3d = [];
+  for (let i = three.hazGroup.children.length - 1; i >= 0; i--) { const m = three.hazGroup.children[i]; three.hazGroup.remove(m); }
 
   // Biome-driven look: textured grass / ice / lava / sky blocks.
   const biome = pickBiome(ld);
@@ -419,21 +432,40 @@ function buildLevel(ld) {
     const zd = (typeof p.zd === 'number') ? p.zd : HALF_D;
     const geo = new THREE.BoxGeometry(p.w, p.h, zd * 2);
 
-    // Clone the biome textures per block so they TILE to the block's size
-    // (grass/ice patterns repeat instead of stretching).
-    const topTex = topBase.clone(); topTex.needsUpdate = true; topTex.repeat.set(Math.max(1, p.w / 70), Math.max(1, (zd * 2) / 70));
-    const sideTex = sideBase.clone(); sideTex.needsUpdate = true; sideTex.repeat.set(Math.max(1, p.w / 70), 1);
-    const top = new THREE.MeshStandardMaterial({ map: topTex, roughness: B.shine ? 0.34 : 0.85, metalness: B.shine ? 0.25 : 0.03 });
-    const side = new THREE.MeshStandardMaterial({ map: sideTex, roughness: 0.9, metalness: 0.02 });
-    if (emBase) {
-      const em = emBase.clone(); em.needsUpdate = true; em.repeat.copy(sideTex.repeat);
-      side.emissiveMap = em; side.emissive = new THREE.Color(0xff6a1e); side.emissiveIntensity = 1.3;
+    let top, side;
+    if (p.kind === 'bounce') {                       // springy bounce pad
+      top = new THREE.MeshStandardMaterial({ color: 0xffb020, roughness: 0.4, metalness: 0.1, emissive: 0x6a3d00, emissiveIntensity: 0.4 });
+      side = new THREE.MeshStandardMaterial({ color: 0xd98a12, roughness: 0.5 });
+    } else if (p.kind === 'lava') {                  // glowing lava-rock hazard
+      top = new THREE.MeshStandardMaterial({ color: 0x2a1410, roughness: 0.7, emissive: 0xff5a10, emissiveIntensity: 1.1 });
+      side = new THREE.MeshStandardMaterial({ color: 0x1e0e0c, roughness: 0.8, emissive: 0xff4a10, emissiveIntensity: 0.7 });
+    } else {                                          // textured biome block
+      const topTex = topBase.clone(); topTex.needsUpdate = true; topTex.repeat.set(Math.max(1, p.w / 70), Math.max(1, (zd * 2) / 70));
+      const sideTex = sideBase.clone(); sideTex.needsUpdate = true; sideTex.repeat.set(Math.max(1, p.w / 70), 1);
+      top = new THREE.MeshStandardMaterial({ map: topTex, roughness: B.shine ? 0.34 : 0.85, metalness: B.shine ? 0.25 : 0.03 });
+      side = new THREE.MeshStandardMaterial({ map: sideTex, roughness: 0.9, metalness: 0.02 });
+      if (emBase) { const em = emBase.clone(); em.needsUpdate = true; em.repeat.copy(sideTex.repeat); side.emissiveMap = em; side.emissive = new THREE.Color(0xff6a1e); side.emissiveIntensity = 1.3; }
     }
     const mesh = new THREE.Mesh(geo, [side, side, top, side, side, side]);
     mesh.position.set(p.x + p.w / 2, -(p.y + p.h / 2), zc);
     mesh.castShadow = true; mesh.receiveShadow = true;
     three.platGroup.add(mesh);
-    boxes.push({ x0: p.x, x1: p.x + p.w, y0: -(p.y + p.h), y1: -p.y, z0: zc - zd, z1: zc + zd });
+    const b = { x0: p.x, x1: p.x + p.w, y0: -(p.y + p.h), y1: -p.y, z0: zc - zd, z1: zc + zd };
+    if (p.kind === 'bounce') b.bounce = true;
+    if (p.kind === 'lava') b.lava = true;
+    boxes.push(b);
+    if (p.move) {
+      movers.push({ box: b, mesh, bx: p.x + p.w / 2, by: -(p.y + p.h / 2), bz: zc, axis: p.move.axis || 'x', dist: p.move.dist || 120, speed: p.move.speed || 0.02, ph: p.move.phase || 0 });
+    }
+  }
+
+  // Spikes — clusters of cones that damage on contact.
+  for (const s of (ld.spikes || [])) {
+    const grp = new THREE.Group();
+    for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(new THREE.ConeGeometry(7, 22, 6), mat('#c3c9d4', 0.5)); c.position.set(-9 + i * 9, 11, 0); c.castShadow = true; grp.add(c); }
+    const sx = s.x + (s.w ? s.w / 2 : 12), sy = -(s.y + 24), sz = s.z || 0;
+    grp.position.set(sx, sy, sz); three.hazGroup.add(grp);
+    spikes3d.push({ x: sx, y: sy, z: sz, r: 24 });
   }
 
   makeDecorations(ld, biome);
@@ -444,6 +476,22 @@ function buildLevel(ld) {
   scene.fog = new THREE.Fog(toColor(B.fog, '#cfe8ff').getHex(), 1400, 5200);
   // Warm/cool the key light to the biome.
   if (three.keyLight) three.keyLight.color.set(B.light);
+}
+
+// Animate moving platforms; stash each frame's delta on the box so a piper
+// standing on it gets carried along.
+function updateMovers() {
+  const t = (window.frameCount | 0);
+  for (const m of movers) {
+    const off = Math.sin(t * m.speed + m.ph) * m.dist;
+    let nx = m.bx, ny = m.by, nz = m.bz;
+    if (m.axis === 'x') nx += off; else if (m.axis === 'y') ny += off; else nz += off;
+    const ccx = (m.box.x0 + m.box.x1) / 2, ccy = (m.box.y0 + m.box.y1) / 2, ccz = (m.box.z0 + m.box.z1) / 2;
+    m.box._dx = nx - ccx; m.box._dy = ny - ccy; m.box._dz = nz - ccz;
+    const hw = (m.box.x1 - m.box.x0) / 2, hh = (m.box.y1 - m.box.y0) / 2, hd = (m.box.z1 - m.box.z0) / 2;
+    m.box.x0 = nx - hw; m.box.x1 = nx + hw; m.box.y0 = ny - hh; m.box.y1 = ny + hh; m.box.z0 = nz - hd; m.box.z1 = nz + hd;
+    m.mesh.position.set(nx, ny, nz);
+  }
 }
 
 // Scatter simple biome decorations (scenery) around the level's edges.
@@ -826,8 +874,18 @@ function tickController() {
   for (const b of boxes) { const a = Axz(); if (hit(a, b)) { if (p3.vx > 0) p3.x = b.x0 - hx; else if (p3.vx < 0) p3.x = b.x1 + hx; p3.vx = 0; } }
   p3.z += p3.vz;
   for (const b of boxes) { const a = Axz(); if (hit(a, b)) { if (p3.vz > 0) p3.z = b.z0 - hz; else if (p3.vz < 0) p3.z = b.z1 + hz; p3.vz = 0; } }
-  p3.grounded = false; p3.y += p3.vy;
-  for (const b of boxes) { const a = Ay(); if (hit(a, b)) { if (p3.vy <= 0) { p3.y = b.y1; p3.grounded = true; } else p3.y = b.y0 - h; p3.vy = 0; } }
+  p3.grounded = false; p3.y += p3.vy; let landed = null;
+  for (const b of boxes) {
+    const a = Ay();
+    if (hit(a, b)) {
+      if (p3.vy <= 0) {
+        if (b.bounce) { p3.y = b.y1; p3.vy = BOUNCE_V; p3.jumps = 0; try { if (window.sfx) window.sfx('jump'); } catch (e) {} }
+        else { p3.y = b.y1; p3.grounded = true; p3.vy = 0; landed = b; if (b.lava) { hurtPlayer(); p3.vy = 11; p3.grounded = false; } }
+      } else { p3.y = b.y0 - h; p3.vy = 0; }
+    }
+  }
+  // Carry the piper along a moving platform it's standing on.
+  if (landed && (landed._dx || landed._dy || landed._dz)) { p3.x += landed._dx || 0; p3.y += landed._dy || 0; p3.z += landed._dz || 0; }
 
   if (p3.grounded) { p3.lgx = p3.x; p3.lgy = p3.y; p3.lgz = p3.z; }
   if (p3.y < -2600) { p3.x = p3.lgx; p3.y = p3.lgy + 40; p3.z = p3.lgz; p3.vx = p3.vy = p3.vz = 0; }
@@ -903,7 +961,12 @@ const ThreeMode = {
       if (sig !== levelSig) { levelSig = sig; buildLevel(ld); }
     }
 
+    updateMovers();
     tickController();
+    // Spike hazards — contact damage + knock-up.
+    for (const s of spikes3d) {
+      if (Math.abs(p3.x - s.x) < s.r && Math.abs(p3.z - s.z) < 22 && p3.y < s.y + 30 && p3.y + P_HEIGHT > s.y - 4) { hurtPlayer(); p3.vy = 9; break; }
+    }
     if (mode === '3d' || mode === 'entering') { tickEnemies3D(); tickAbilities(); collect3DCoins(); }
 
     if (window.player && window.player.hp <= 0 && mode !== 'exiting') { this.reset(); return; }
