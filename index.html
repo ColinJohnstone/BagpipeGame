@@ -13234,6 +13234,18 @@
         }
       }
 
+      // ── Atmospheric horizon glow (all themes) ────────────────────────
+      // A soft accent-coloured band rising from the horizon gives the sky
+      // real depth. Drawn BEHIND the silhouettes so they read against it.
+      if (!opts.noAtmo) {
+        const accG = cleanThemeColor(tb.accent, '#5a2080');
+        const hb = c.createLinearGradient(0, viewY + viewH * 0.42, 0, viewY + viewH);
+        hb.addColorStop(0, accG + '00');
+        hb.addColorStop(1, accG + '30');
+        c.fillStyle = hb;
+        c.fillRect(viewX, viewY + viewH * 0.42, viewW, viewH * 0.58);
+      }
+
       const style = tb.style || themeKey;
       c.save();
       c.translate(viewX * .3, 0);
@@ -13484,7 +13496,65 @@
         c.globalAlpha = 1;
       }
 
+      // ── Ambient motes for themes without bespoke particles ────────────
+      if (!opts.noAtmo) drawAtmoMotes(c, style, { viewX, viewY, viewW, viewH, frame });
+
+      // ── Soft vignette (all themes) — frames the scene, adds cohesion ──
+      if (!opts.noAtmo) {
+        const vig = c.createRadialGradient(
+          viewX + viewW / 2, viewY + viewH * 0.44, viewH * 0.36,
+          viewX + viewW / 2, viewY + viewH * 0.50, viewH * 0.98);
+        vig.addColorStop(0, 'rgba(0,0,0,0)');
+        vig.addColorStop(1, 'rgba(0,0,0,0.26)');
+        c.fillStyle = vig;
+        c.fillRect(viewX, viewY, viewW, viewH);
+      }
+
       c.restore();
+    }
+
+    // Per-theme drifting ambient motes for the themes that lack bespoke
+    // particle passes above, so EVERY theme has some atmospheric life.
+    const ATMO_MOTES = {
+      highland:  { kind: 'rise',    n: 16, col: [180, 255, 150], spd: 0.35, sz: 2, tw: true },
+      citadel:   { kind: 'drift',   n: 16, col: [220, 230, 250], spd: 0.20, sz: 2 },
+      cosmic:    { kind: 'twinkle', n: 30, col: [214, 168, 255], spd: 0,    sz: 2 },
+      cherry:    { kind: 'petal',   n: 18, col: [255, 176, 216], spd: 0.60, sz: 3 },
+      steampunk: { kind: 'rise',    n: 16, col: [255, 170, 80],  spd: 0.50, sz: 2, tw: true },
+      cyber:     { kind: 'twinkle', n: 26, col: [255, 80, 220],  spd: 0,    sz: 2, alt: [80, 220, 255] },
+      coralreef: { kind: 'bubble',  n: 18, col: [170, 240, 230], spd: 0.50, sz: 3 },
+      halloween: { kind: 'rise',    n: 18, col: [255, 140, 40],  spd: 0.45, sz: 2, tw: true },
+      castle:    { kind: 'drift',   n: 14, col: [255, 180, 120], spd: 0.25, sz: 2 },
+    };
+    function drawAtmoMotes(c, style, o) {
+      const cfg = ATMO_MOTES[style]; if (!cfg) return;
+      const { viewX, viewY, viewW, viewH, frame } = o;
+      const wrapH = viewH + 70;
+      for (let i = 0; i < cfg.n; i++) {
+        let x = viewX + ((i * 67 + Math.sin(frame * 0.02 + i) * 20) % (viewW + 60)) - 30;
+        let y, a = 1;
+        if (cfg.kind === 'rise' || cfg.kind === 'bubble') {
+          y = viewY + (((i * 53 - frame * cfg.spd) % wrapH) + wrapH) % wrapH - 35;
+        } else if (cfg.kind === 'petal' || cfg.kind === 'drift') {
+          y = viewY + ((i * 43 + frame * cfg.spd) % (viewH + 60)) - 30;
+          x += Math.sin(frame * 0.03 + i) * (cfg.kind === 'petal' ? 24 : 10);
+        } else { // twinkle
+          y = viewY + ((i * 41) % (viewH + 40)) - 20;
+          a = 0.35 + 0.4 * Math.sin(frame * 0.06 + i * 1.3);
+        }
+        if (cfg.tw) a = 0.4 + 0.4 * Math.sin(frame * 0.05 + i);
+        let cr = cfg.col[0], cg = cfg.col[1], cb = cfg.col[2];
+        if (cfg.alt && (i % 2)) { cr = cfg.alt[0]; cg = cfg.alt[1]; cb = cfg.alt[2]; }
+        c.fillStyle = 'rgba(' + cr + ',' + cg + ',' + cb + ',' + Math.max(0, a).toFixed(2) + ')';
+        if (cfg.kind === 'bubble') {
+          c.beginPath(); c.arc(x, y, cfg.sz, 0, Math.PI * 2); c.fill();
+        } else if (cfg.kind === 'petal') {
+          c.save(); c.translate(x, y); c.rotate(Math.sin(frame * 0.04 + i) * 1.2);
+          c.beginPath(); c.ellipse(0, 0, cfg.sz + 1, cfg.sz - 1, 0, 0, Math.PI * 2); c.fill(); c.restore();
+        } else {
+          c.fillRect(x, y, cfg.sz, cfg.sz);
+        }
+      }
     }
 
     function drawThemedTerrain(c, p, ld, themeKey, frame = frameCount) {
