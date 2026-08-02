@@ -26,7 +26,9 @@
   ];
   const DIR = window.MUSIC_DIR || 'music/';
 
-  let audio = null, idx = 0, shuffle = false, loop = false, wired = false;
+  let audio = null, idx = 0, shuffle = false, loop = false, wired = false, active = false;
+  // Guitar-Hero fret colours, cycled down the setlist.
+  const FRETS = ['#4ade5a', '#ff4d4d', '#ffd23f', '#4d9bff', '#ff9d3f'];
   const el = (id) => document.getElementById(id);
   const fmt = (t) => { if (!isFinite(t) || t < 0) t = 0; const m = Math.floor(t / 60), s = Math.floor(t % 60); return m + ':' + (s < 10 ? '0' : '') + s; };
 
@@ -55,28 +57,40 @@
     TRACKS.forEach((t, i) => {
       const row = document.createElement('div');
       row.className = 'mp-row'; row.dataset.i = i;
-      row.style.cssText = 'padding:10px 14px;font-size:9px;color:#cfe4ff;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:10px;';
-      row.innerHTML = '<span class="mp-ic" style="width:14px;color:#b06bff;">♪</span><span>' + t[1] + '</span>';
+      row.innerHTML =
+        '<span class="mp-fret" style="color:' + FRETS[i % FRETS.length] + ';background:' + FRETS[i % FRETS.length] + ';"></span>'
+        + '<span class="mp-num">' + String(i + 1).padStart(2, '0') + '</span>'
+        + '<span class="mp-name">' + t[1] + '</span>'
+        + '<span class="mp-eq"><i></i><i></i><i></i><i></i></span>';
       row.onclick = () => play(i);
       list.appendChild(row);
     });
+    const head = el('mp-sethead'); if (head) head.textContent = '▮ SETLIST · ' + TRACKS.length + ' SONGS';
     highlight();
   }
 
   function highlight() {
+    const playing = audio && !audio.paused;
     document.querySelectorAll('#mp-list .mp-row').forEach((r, i) => {
-      const on = i === idx;
-      r.style.background = on ? 'rgba(176,107,255,0.22)' : 'transparent';
-      const ic = r.querySelector('.mp-ic');
-      if (ic) ic.textContent = on ? (audio && !audio.paused ? '▶' : '❙❙') : '♪';
+      r.classList.toggle('active', i === idx);
     });
-    if (el('mp-title')) el('mp-title').textContent = TRACKS[idx] ? TRACKS[idx][1] : '—';
-    if (el('mp-playpause')) el('mp-playpause').textContent = (audio && !audio.paused) ? '⏸' : '▶';
+    const title = TRACKS[idx] ? TRACKS[idx][1] : '—';
+    if (el('mp-title')) el('mp-title').textContent = title;
+    if (el('mp-playpause')) el('mp-playpause').textContent = playing ? '⏸' : '▶';
     if (el('mp-shuffle')) el('mp-shuffle').style.opacity = shuffle ? '1' : '0.5';
     if (el('mp-loop')) el('mp-loop').style.opacity = loop ? '1' : '0.5';
+    // Turntable: spin the disc while playing, freeze the equalizer + disc when paused.
+    const disc = el('mp-disc'), label = el('mp-disc-label'), arm = el('mp-tonearm'), list = el('mp-list');
+    const started = !!(audio && audio.src);
+    if (disc) { disc.classList.toggle('spin', started); disc.classList.toggle('paused', started && !playing); }
+    if (list) list.classList.toggle('paused', started && !playing);
+    if (arm) arm.classList.toggle('on', playing);
+    if (label) label.textContent = started ? (title.replace(/[^A-Za-z0-9]/g, '')[0] || '♪').toUpperCase() : '♪';
   }
 
   function play(i) {
+    // Belt-and-braces: never let the menu loop resume under a chosen track.
+    try { if (active && typeof stopMenuMusic === 'function') stopMenuMusic({ fade: false }); } catch (e) {}
     idx = ((i % TRACKS.length) + TRACKS.length) % TRACKS.length;
     ensureAudio();
     audio.src = DIR + TRACKS[idx][0];
@@ -103,7 +117,9 @@
   }
 
   function open() {
-    try { if (typeof stopMenuMusic === 'function') stopMenuMusic(); } catch (e) {}
+    active = true;
+    // Hard-stop the menu loop (no fade overlap) so nothing plays under the jukebox.
+    try { if (typeof stopMenuMusic === 'function') stopMenuMusic({ fade: false }); } catch (e) {}
     // Seed the volume slider from the game's music volume.
     try {
       if (typeof getVolumes === 'function' && el('mp-vol')) {
@@ -115,10 +131,12 @@
     if (window.UI && UI.showScreen) UI.showScreen('s-musicplayer');
   }
   function close() {
+    active = false;
     if (audio) audio.pause();
+    highlight();
     if (window.UI && UI.showScreen) UI.showScreen('s-title');
     try { if (typeof startMenuMusic === 'function') startMenuMusic(); } catch (e) {}
   }
 
-  window.MusicPlayer = { open, close, play, next, prev, togglePlay, TRACKS };
+  window.MusicPlayer = { open, close, play, next, prev, togglePlay, isOpen: () => active, TRACKS };
 })();

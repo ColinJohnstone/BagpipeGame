@@ -425,7 +425,9 @@ function buildLevel(ld) {
   const topBase = B.top(), sideBase = B.side();
   const emBase = B.emissive ? B.emissive() : null;
 
-  for (const p of (ld.platforms || [])) {
+  const _plats = ld.platforms || [];
+  for (let _pi = 0; _pi < _plats.length; _pi++) {
+    const p = _plats[_pi];
     if (p.type && p.type !== 'ground') continue;
     // Optional per-platform depth: zc = z-centre, zd = z half-depth.
     const zc = (typeof p.zc === 'number') ? p.zc : 0;
@@ -449,6 +451,7 @@ function buildLevel(ld) {
     const mesh = new THREE.Mesh(geo, [side, side, top, side, side, side]);
     mesh.position.set(p.x + p.w / 2, -(p.y + p.h / 2), zc);
     mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.userData.platIndex = _pi;
     three.platGroup.add(mesh);
     const b = { x0: p.x, x1: p.x + p.w, y0: -(p.y + p.h), y1: -p.y, z0: zc - zd, z1: zc + zd };
     if (p.kind === 'bounce') b.bounce = true;
@@ -1131,6 +1134,331 @@ const ThreeMode = {
     camera.aspect = W / H; camera.updateProjectionMatrix();
     const cv = document.getElementById('three-canvas');
     if (cv) { cv.style.width = W + 'px'; cv.style.height = H + 'px'; }
+  },
+};
+
+// ═════════════════════════════════════════════════════════════════════════
+//  LIVE 3D LEVEL EDITOR
+//  A self-contained in-scene editor that reuses the play renderer's scene,
+//  textures, biome system and goal castle. Orbit the camera, aim a build
+//  cursor at a platform top (or the build plane), and click to place / select
+//  / erase level elements. Drives its own frames via ThreeMode.editor.frame().
+//  UI + storage live in src/builder3d.js (window.Builder3D); this owns all the
+//  THREE math (raycast, cursor, camera, marker meshes).
+// ═════════════════════════════════════════════════════════════════════════
+const ED_PW = 32, ED_PH = 50;                 // player box (for start marker / spawn)
+const ed = {
+  active: false, level: null, tool: 'platform',
+  plat: { w: 220, h: 30, d: 220 }, enemyV: 0, kind: 'normal',
+  buildY: 470, grid: 20,
+  cam: { yaw: FACE_X, el: 0.5, dist: 640, fx: 800, fy: -300, fz: 0 },
+  sel: null,                                   // { kind:'platform'|'coin'|..., index }
+  cursor: new THREE.Vector3(), cursorOn: false,
+  ndc: new THREE.Vector2(), ray: new THREE.Raycaster(),
+  plane: new THREE.Plane(new THREE.Vector3(0, 1, 0), 0),
+  cursorMesh: null, selBox: null, markGroup: null, grid3d: null, planeMesh: null,
+  dirty: true, drag: null, onChange: null,
+};
+
+function edEnsure() {
+  if (ed.cursorMesh) return;
+  // Build cursor — a bright wire box that previews the platform footprint.
+  const cg = new THREE.BoxGeometry(1, 1, 1);
+  const edges = new THREE.EdgesGeometry(cg);
+  ed.cursorMesh = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x8ef0ff }));
+  ed.cursorMesh.renderOrder = 20; scene.add(ed.cursorMesh);
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(6, 10, 8), new THREE.MeshBasicMaterial({ color: 0x8ef0ff }));
+  ed.cursorMesh.add(dot); ed.cursorDot = dot;
+  // Selection highlight box.
+  ed.selBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
+    new THREE.LineBasicMaterial({ color: 0xffe27a }));
+  ed.selBox.visible = false; ed.selBox.renderOrder = 21; scene.add(ed.selBox);
+  // Marker group (coins / enemies / spikes / start / goal).
+  ed.markGroup = new THREE.Group(); scene.add(ed.markGroup);
+  // A grid on the build plane for spatial reference.
+  ed.grid3d = new THREE.GridHelper(4000, 100, 0x9fd0ff, 0x3a4a66);
+  ed.grid3d.material.transparent = true; ed.grid3d.material.opacity = 0.35;
+  scene.add(ed.grid3d);
+}
+
+function edTag(o, kind, index) { o.userData.edKind = kind; o.userData.edIndex = index; }
+function edFindTagged(o) { let n = o; while (n) { if (n.userData && n.userData.edKind) return n; n = n.parent; } return null; }
+function edSnap(v) { return Math.round(v / ed.grid) * ed.grid; }
+
+// Screen (client) coords → the point being aimed at. Prefers the closest
+// platform-top surface; falls back to the horizontal build plane.
+function edAim(clientX, clientY) {
+  const cv = renderer.domElement, r = cv.getBoundingClientRect();
+  ed.ndc.x = ((clientX - r.left) / r.width) * 2 - 1;
+  ed.ndc.y = -((clientY - r.top) / r.height) * 2 + 1;
+  ed.ray.setFromCamera(ed.ndc, camera);
+  const platHits = ed.ray.intersectObjects(three.platGroup.children, false);
+  const markHits = ed.ray.intersectObjects(ed.markGroup.children, true);
+  ed.plane.constant = -(-ed.buildY);      // plane at threeY = -buildY
+  const planePt = new THREE.Vector3();
+  const hitPlane = ed.ray.ray.intersectPlane(ed.plane, planePt);
+  // Nearest hit decides the aim point + what's under the cursor.
+  let best = null, bestDist = Infinity, platIndex = -1, markObj = null;
+  if (platHits.length && platHits[0].distance < bestDist) { best = platHits[0].point.clone(); bestDist = platHits[0].distance; platIndex = platHits[0].object.userData.platIndex; markObj = null; }
+  if (markHits.length && markHits[0].distance < bestDist) { best = markHits[0].point.clone(); bestDist = markHits[0].distance; markObj = edFindTagged(markHits[0].object); platIndex = -1; }
+  if (hitPlane && (!best || planePt.distanceTo(camera.position) < bestDist * 0.999)) {
+    // Only fall to the plane when nothing solid is closer.
+    if (!best) { best = planePt.clone(); platIndex = -1; markObj = null; }
+  }
+  if (!best) return null;
+  best.x = edSnap(best.x); best.z = edSnap(best.z);
+  return { pt: best, platIndex, markObj };
+}
+
+// Convert an aim point into a new level element for the active tool.
+function edPlace(aim) {
+  const L = ed.level, pt = aim.pt;
+  const wx = pt.x, wz = pt.z, topWorldY = -pt.y;   // world-Y (screen-down) of the surface
+  const T = ed.tool;
+  edSnapshot();
+  if (T === 'platform' || T === 'bounce' || T === 'lava') {
+    const P = ed.plat;
+    const p = { x: Math.round(wx - P.w / 2), y: Math.round(topWorldY), w: P.w, h: P.h, zc: Math.round(wz), zd: Math.round(P.d / 2) };
+    if (T === 'bounce') p.kind = 'bounce'; else if (T === 'lava') p.kind = 'lava';
+    (L.platforms || (L.platforms = [])).push(p);
+    ed.sel = { kind: 'platform', index: L.platforms.length - 1 };
+  } else if (T === 'coin') {
+    (L.coins || (L.coins = [])).push({ x: Math.round(wx - 8), y: Math.round(-(pt.y + 24) - 8), z: Math.round(wz) });
+  } else if (T === 'enemy') {
+    (L.enemies || (L.enemies = [])).push({ x: Math.round(wx - 16), y: Math.round(topWorldY - 32), v: ed.enemyV | 0, hp: 3 });
+  } else if (T === 'spike') {
+    (L.spikes || (L.spikes = [])).push({ x: Math.round(wx - 12), y: Math.round(topWorldY - 24), z: Math.round(wz) });
+  } else if (T === 'start') {
+    L.startX = Math.round(wx - 16); L.startY = Math.round(topWorldY - ED_PH);
+  } else if (T === 'goal') {
+    L.goalX = Math.round(wx - 50); L.goalY = Math.round(topWorldY - 140);
+  }
+  edAutosize();
+  ed.dirty = true;
+  if (ed.onChange) ed.onChange();
+}
+
+// Erase the element under the cursor (platform or marker).
+function edErase(aim) {
+  const L = ed.level;
+  edSnapshot();
+  if (aim.platIndex >= 0 && L.platforms) { L.platforms.splice(aim.platIndex, 1); if (ed.sel && ed.sel.kind === 'platform') ed.sel = null; }
+  else if (aim.markObj) {
+    const k = aim.markObj.userData.edKind, i = aim.markObj.userData.edIndex;
+    if (k === 'coin' && L.coins) L.coins.splice(i, 1);
+    else if (k === 'enemy' && L.enemies) L.enemies.splice(i, 1);
+    else if (k === 'spike' && L.spikes) L.spikes.splice(i, 1);
+  }
+  ed.sel = null; ed.dirty = true;
+  if (ed.onChange) ed.onChange();
+}
+
+// Grow level.width so it always covers the furthest placement + margin.
+function edAutosize() {
+  const L = ed.level; let mx = 600;
+  for (const p of (L.platforms || [])) mx = Math.max(mx, p.x + p.w);
+  if (L.goalX != null && L.goalX > -500) mx = Math.max(mx, L.goalX + 200);
+  L.width = Math.max(1200, Math.ceil((mx + 300) / 100) * 100);
+}
+
+// Undo stack (level snapshots).
+ed.undo = [];
+function edSnapshot() { try { ed.undo.push(JSON.stringify(ed.level)); if (ed.undo.length > 40) ed.undo.shift(); } catch (e) {} }
+function edUndo() { if (!ed.undo.length) return; try { const s = ed.undo.pop(); ed.level = JSON.parse(s); ed.sel = null; ed.dirty = true; if (ed.onChange) ed.onChange(); } catch (e) {} }
+
+// Rebuild the coin / enemy / spike / start / goal marker meshes from the level.
+function edBuildMarkers() {
+  const g = ed.markGroup;
+  for (let i = g.children.length - 1; i >= 0; i--) { const m = g.children[i]; g.remove(m); m.traverse && m.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
+  const L = ed.level;
+  (L.coins || []).forEach((c, i) => { const m = cyl(9, 9, 3, '#f5c518'); m.rotation.x = Math.PI / 2; m.position.set(c.x + 8, -(c.y + 8), c.z || 0); edTag(m, 'coin', i); g.add(m); });
+  (L.enemies || []).forEach((e, i) => {
+    const grp = new THREE.Group();
+    const b = cyl(13, 13, 20, variantColor(e.v | 0)); b.position.y = 15; grp.add(b);
+    grp.add(cyl(14, 14, 3, '#efe6cc')); grp.children[1].position.y = 25;
+    grp.position.set(e.x + (e.w || 32) / 2, -(e.y + (e.h || 32)), 0); edTag(grp, 'enemy', i); g.add(grp);
+  });
+  (L.spikes || []).forEach((s, i) => {
+    const grp = new THREE.Group();
+    for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(new THREE.ConeGeometry(7, 22, 6), mat('#c3c9d4', 0.5)); c.position.set(-9 + k * 9, 11, 0); grp.add(c); }
+    grp.position.set(s.x + (s.w ? s.w / 2 : 12), -(s.y + 24), s.z || 0); edTag(grp, 'spike', i); g.add(grp);
+  });
+  if (L.startX != null) { const m = new THREE.Mesh(new THREE.ConeGeometry(11, 28, 8), mat('#4ad06a')); m.position.set(L.startX + 16, -(L.startY + ED_PH) + 14, 0); edTag(m, 'start', 0); g.add(m); }
+  if (L.goalX != null && L.goalX > -500) {
+    const grp = new THREE.Group();
+    const post = box(30, 120, 30, '#cfc9b2'); post.position.y = 60; grp.add(post);
+    const flag = box(34, 20, 2, '#c0202c'); flag.position.set(20, 108, 0); grp.add(flag);
+    grp.position.set(L.goalX + 50, -(L.goalY + 140), 0); edTag(grp, 'goal', 0); g.add(grp);
+  }
+}
+
+function edPositionCamera() {
+  const c = ed.cam, h = c.dist * Math.cos(c.el);
+  camera.position.set(c.fx - Math.sin(c.yaw) * h, c.fy + c.dist * Math.sin(c.el), c.fz - Math.cos(c.yaw) * h);
+  camera.lookAt(c.fx, c.fy, c.fz);
+}
+
+// Pointer + wheel handlers (attached once, gated on ed.active).
+function edAttachInput() {
+  if (edAttachInput._done) return; edAttachInput._done = true;
+  const cv = renderer.domElement;
+  cv.addEventListener('contextmenu', (e) => { if (ed.active) e.preventDefault(); });
+  cv.addEventListener('pointerdown', (e) => {
+    if (!ed.active) return;
+    if (e.button === 2 || e.button === 1 || e.shiftKey) { ed.drag = { x: e.clientX, y: e.clientY, orbit: true }; return; }
+    const aim = edAim(e.clientX, e.clientY); if (!aim) return;
+    if (ed.tool === 'select') {
+      if (aim.platIndex >= 0) { ed.sel = { kind: 'platform', index: aim.platIndex }; ed.drag = { x: e.clientX, y: e.clientY, move: true }; }
+      else if (aim.markObj) { ed.sel = { kind: aim.markObj.userData.edKind, index: aim.markObj.userData.edIndex }; ed.drag = { x: e.clientX, y: e.clientY, move: true }; }
+      else ed.sel = null;
+    } else if (ed.tool === 'erase') { edErase(aim); }
+    else { edPlace(aim); }
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!ed.active) return;
+    if (ed.drag && ed.drag.orbit) {
+      const dx = e.clientX - ed.drag.x, dy = e.clientY - ed.drag.y; ed.drag.x = e.clientX; ed.drag.y = e.clientY;
+      ed.cam.yaw -= dx * 0.006; ed.cam.el = Math.max(0.08, Math.min(1.35, ed.cam.el - dy * 0.005)); return;
+    }
+    const aim = edAim(e.clientX, e.clientY);
+    if (aim) { ed.cursor.copy(aim.pt); ed.cursorOn = true; } else ed.cursorOn = false;
+    if (ed.drag && ed.drag.move && ed.sel && aim) edMoveSel(aim);
+  });
+  window.addEventListener('pointerup', () => { if (ed.drag && ed.drag.move && ed.onChange) ed.onChange(); ed.drag = null; });
+  cv.addEventListener('wheel', (e) => { if (!ed.active) return; e.preventDefault(); ed.cam.dist = Math.max(180, Math.min(1600, ed.cam.dist + e.deltaY * 0.4)); }, { passive: false });
+  window.addEventListener('keydown', (e) => {
+    if (!ed.active) return;
+    const k = e.key.toLowerCase();
+    const step = 40;
+    const fwd = { x: Math.sin(ed.cam.yaw), z: Math.cos(ed.cam.yaw) }, rt = { x: Math.cos(ed.cam.yaw), z: -Math.sin(ed.cam.yaw) };
+    if (k === 'w') { ed.cam.fx += fwd.x * step; ed.cam.fz += fwd.z * step; }
+    else if (k === 's') { ed.cam.fx -= fwd.x * step; ed.cam.fz -= fwd.z * step; }
+    else if (k === 'd') { ed.cam.fx += rt.x * step; ed.cam.fz += rt.z * step; }
+    else if (k === 'a') { ed.cam.fx -= rt.x * step; ed.cam.fz -= rt.z * step; }
+    else if (k === 'r') { ed.buildY -= ed.grid; }        // raise build plane (screen-down: up = smaller y)
+    else if (k === 'f') { ed.buildY += ed.grid; }        // lower build plane
+    else if (k === 'delete' || k === 'backspace') { if (ed.sel) edDeleteSel(); }
+    else if (k === 'z' && (e.ctrlKey || e.metaKey)) { edUndo(); }
+    else return;
+    e.preventDefault();
+  });
+}
+
+// Move the selected element to follow the cursor (x/z; keeps height).
+function edMoveSel(aim) {
+  const L = ed.level, s = ed.sel, wx = aim.pt.x, wz = aim.pt.z;
+  if (s.kind === 'platform' && L.platforms[s.index]) { const p = L.platforms[s.index]; p.x = Math.round(wx - p.w / 2); p.zc = Math.round(wz); }
+  else if (s.kind === 'coin' && L.coins[s.index]) { const c = L.coins[s.index]; c.x = Math.round(wx - 8); c.z = Math.round(wz); }
+  else if (s.kind === 'enemy' && L.enemies[s.index]) { const en = L.enemies[s.index]; en.x = Math.round(wx - 16); }
+  else if (s.kind === 'spike' && L.spikes[s.index]) { const sp = L.spikes[s.index]; sp.x = Math.round(wx - 12); sp.z = Math.round(wz); }
+  else if (s.kind === 'start') { L.startX = Math.round(wx - 16); }
+  else if (s.kind === 'goal') { L.goalX = Math.round(wx - 50); }
+  ed.dirty = true; edAutosize();
+}
+function edDeleteSel() {
+  const L = ed.level, s = ed.sel; if (!s) return; edSnapshot();
+  if (s.kind === 'platform' && L.platforms) L.platforms.splice(s.index, 1);
+  else if (s.kind === 'coin' && L.coins) L.coins.splice(s.index, 1);
+  else if (s.kind === 'enemy' && L.enemies) L.enemies.splice(s.index, 1);
+  else if (s.kind === 'spike' && L.spikes) L.spikes.splice(s.index, 1);
+  else if (s.kind === 'start') { /* keep a start; ignore */ }
+  else if (s.kind === 'goal') { L.goalX = -1000; }
+  ed.sel = null; ed.dirty = true; if (ed.onChange) ed.onChange();
+}
+
+// Update the selection-highlight box from the current selection.
+function edUpdateSelBox() {
+  const L = ed.level, s = ed.sel, b = ed.selBox;
+  if (!s) { b.visible = false; return; }
+  let cx, cy, cz, sx, sy, sz;
+  if (s.kind === 'platform' && L.platforms[s.index]) { const p = L.platforms[s.index], zd = p.zd != null ? p.zd : HALF_D; cx = p.x + p.w / 2; cy = -(p.y + p.h / 2); cz = p.zc || 0; sx = p.w + 6; sy = p.h + 6; sz = zd * 2 + 6; }
+  else if (s.kind === 'coin' && L.coins[s.index]) { const c = L.coins[s.index]; cx = c.x + 8; cy = -(c.y + 8); cz = c.z || 0; sx = sy = sz = 26; }
+  else if (s.kind === 'enemy' && L.enemies[s.index]) { const e = L.enemies[s.index]; cx = e.x + 16; cy = -(e.y + 16); cz = 0; sx = 34; sy = 40; sz = 34; }
+  else if (s.kind === 'spike' && L.spikes[s.index]) { const sp = L.spikes[s.index]; cx = sp.x + 12; cy = -(sp.y + 12); cz = sp.z || 0; sx = 40; sy = 30; sz = 30; }
+  else if (s.kind === 'start') { cx = (L.startX || 0) + 16; cy = -((L.startY || 0) + ED_PH / 2); cz = 0; sx = 34; sy = ED_PH; sz = 34; }
+  else if (s.kind === 'goal' && L.goalX > -500) { cx = L.goalX + 50; cy = -(L.goalY + 70); cz = 0; sx = 40; sy = 140; sz = 40; }
+  else { b.visible = false; return; }
+  b.visible = true; b.position.set(cx, cy, cz); b.scale.set(sx, sy, sz);
+}
+
+// The editor's public surface (called from src/builder3d.js).
+ThreeMode.editor = {
+  isOpen() { return ed.active; },
+  open(level, opts) {
+    if (!ensureInit(960, 540)) return false;
+    edEnsure(); edAttachInput();
+    ed.active = true; ed.level = level; ed.sel = null; ed.dirty = true; ed.undo = [];
+    ed.onChange = (opts && opts.onChange) || null;
+    // Aim the camera at the level's start.
+    ed.cam.fx = (level.startX || 200) + 200; ed.cam.fy = -((level.startY || 380)) - 40; ed.cam.fz = 0;
+    ed.buildY = (level.startY != null ? level.startY + ED_PH : 470);
+    levelSig = '__editor__';
+    const cv = document.getElementById('three-canvas');
+    if (cv) { cv.style.display = ''; cv.style.pointerEvents = 'auto'; cv.style.zIndex = '9998'; cv.style.opacity = '1'; }
+    const gc = document.getElementById('gameCanvas'); if (gc) gc.style.opacity = '0';
+    return true;
+  },
+  close() {
+    ed.active = false;
+    if (three && three.player) three.player.group.visible = true;   // play renderer never re-enables it
+    if (ed.cursorMesh) ed.cursorMesh.visible = false;
+    if (ed.selBox) ed.selBox.visible = false;
+    const cv = document.getElementById('three-canvas');
+    if (cv) { cv.style.display = 'none'; cv.style.pointerEvents = 'none'; cv.style.zIndex = '2'; }
+    const gc = document.getElementById('gameCanvas'); if (gc) gc.style.opacity = '';
+    levelSig = '';   // force the play renderer to rebuild fresh next time
+  },
+  setTool(t) { ed.tool = t; },
+  getTool() { return ed.tool; },
+  setBiome(b) { if (ed.level) { ed.level.biome = b; ed.dirty = true; } },
+  setPlatSize(w, h, d) { if (w) ed.plat.w = w; if (h) ed.plat.h = h; if (d) ed.plat.d = d; },
+  getPlatSize() { return { ...ed.plat }; },
+  setEnemyVariant(v) { ed.enemyV = v | 0; },
+  getBuildY() { return ed.buildY; },
+  setBuildY(y) { ed.buildY = y; },
+  deleteSelected() { edDeleteSel(); },
+  undo() { edUndo(); },
+  getSelection() { return ed.sel ? { ...ed.sel } : null; },
+  getLevel() { return ed.level; },
+  markDirty() { ed.dirty = true; },
+  counts() { const L = ed.level || {}; return { platforms: (L.platforms || []).length, coins: (L.coins || []).length, enemies: (L.enemies || []).length, spikes: (L.spikes || []).length, width: L.width || 0 }; },
+
+  // One editor frame: rebuild changed geometry, place cursor + camera, render.
+  frame(W, H) {
+    if (!ed.active || !inited) return;
+    if (W && H) {
+      renderer.setSize(W, H, false); camera.aspect = W / H; camera.updateProjectionMatrix();
+      const cv = renderer.domElement; cv.style.width = W + 'px'; cv.style.height = H + 'px';
+    }
+    if (ed.dirty) { buildLevel(ed.level); edBuildMarkers(); ed.dirty = false; }
+
+    // Cursor preview (platform footprint for build tools; a dot otherwise).
+    const cm = ed.cursorMesh;
+    if (ed.cursorOn && ed.tool !== 'select') {
+      cm.visible = true;
+      if (ed.tool === 'platform' || ed.tool === 'bounce' || ed.tool === 'lava') {
+        cm.position.set(ed.cursor.x, ed.cursor.y - ed.plat.h / 2, ed.cursor.z);
+        cm.scale.set(ed.plat.w, ed.plat.h, ed.plat.d);
+        ed.cursorDot.scale.setScalar(1 / Math.max(ed.plat.w, 1) * 40);
+      } else {
+        cm.position.copy(ed.cursor); cm.scale.set(30, 30, 30); ed.cursorDot.scale.setScalar(0.6);
+      }
+    } else cm.visible = false;
+
+    edUpdateSelBox();
+    if (ed.grid3d) { ed.grid3d.position.set(ed.cam.fx, -ed.buildY, ed.cam.fz); }
+    // Keep the shadow light near the working area.
+    if (three.keyLight) { three.keyLight.position.set(ed.cam.fx - 300, -ed.buildY + 640, ed.cam.fz + 420); three.keyLight.target.position.set(ed.cam.fx, -ed.buildY, ed.cam.fz); three.keyLight.target.updateMatrixWorld(); }
+    // Hide play-only dynamic objects.
+    if (three.player) three.player.group.visible = false;
+    if (three.shadow) three.shadow.visible = false;
+    if (three.goal) three.goal.group.visible = false;
+    three.coins.forEach(c => c.mesh.visible = false);
+    three.enemies.forEach(e => e.group.visible = false);
+    three.platGroup.scale.z = 1;
+
+    edPositionCamera();
+    renderer.render(scene, camera);
   },
 };
 

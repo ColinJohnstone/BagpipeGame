@@ -2961,33 +2961,95 @@
       </div>
     </div>
 
-    <!-- ── Music Player (jukebox) ─────────────────────────────────────── -->
+    <!-- ── Music Player (jukebox) — turntable + Guitar-Hero setlist ────── -->
+    <style id="mp-style">
+      #s-musicplayer .screen-title { color:#ff6ad5; text-shadow:0 0 14px rgba(255,106,213,.6); }
+      .mp-wrap { display:flex; gap:20px; width:min(900px,95vw); align-items:stretch; font-family:'Press Start 2P',monospace; }
+      @media (max-width:900px){ .mp-wrap{ flex-direction:column; align-items:center; } }
+      .mp-deck { flex:0 0 296px; display:flex; flex-direction:column; align-items:center; gap:11px;
+        background:linear-gradient(160deg,rgba(34,16,60,.72),rgba(10,10,30,.72)); border:1px solid rgba(176,107,255,.4);
+        border-radius:16px; padding:18px 16px; box-shadow:inset 0 0 44px rgba(176,107,255,.14),0 8px 26px rgba(0,0,0,.5); }
+      .mp-turntable { position:relative; width:196px; height:196px; margin:4px 0 6px; }
+      .mp-disc { position:absolute; inset:0; border-radius:50%;
+        background:
+          radial-gradient(circle at 50% 50%, #16161a 0 27%, rgba(0,0,0,0) 27.4%),
+          repeating-radial-gradient(circle at 50% 50%, #08080a 0 3px, #17171c 3px 6px);
+        box-shadow:0 0 0 5px #050506, 0 8px 26px rgba(0,0,0,.6), 0 0 28px rgba(142,240,255,.16);
+        display:flex; align-items:center; justify-content:center; will-change:transform; }
+      .mp-disc.spin { animation:mp-spin 3.4s linear infinite; }
+      .mp-disc.paused { animation-play-state:paused; }
+      .mp-disc::after { content:''; position:absolute; width:9px; height:9px; border-radius:50%; background:#0a0a1a; box-shadow:inset 0 0 0 2px #2a2a33; z-index:3; }
+      .mp-label { width:88px; height:88px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+        background:radial-gradient(circle at 38% 32%, #ff8ae0, #b06bff 58%, #6a3db0); color:#fff; font-size:24px;
+        box-shadow:inset 0 0 0 3px rgba(255,255,255,.16), 0 0 14px rgba(255,106,213,.55); border:2px solid rgba(0,0,0,.4); }
+      .mp-tonearm { position:absolute; top:2px; right:6px; width:14px; height:14px; border-radius:50%;
+        background:#c9cdd6; box-shadow:0 0 0 4px #565b64, 0 2px 6px rgba(0,0,0,.5); transform-origin:center;
+        transition:transform .5s ease; z-index:4; }
+      .mp-tonearm::after { content:''; position:absolute; top:12px; left:5px; width:5px; height:82px;
+        background:linear-gradient(180deg,#c1c5cd,#7b8088); border-radius:3px; transform-origin:top center; transform:rotate(34deg); }
+      .mp-tonearm.on { transform:rotate(-14deg); }
+      @keyframes mp-spin { to { transform:rotate(360deg); } }
+      .mp-now { font-size:8px; color:#8ef0ff; letter-spacing:1px; align-self:flex-start; }
+      .mp-title { font-size:11px; color:#ffe27a; line-height:1.5; min-height:34px; align-self:flex-start; text-shadow:0 0 8px rgba(255,226,122,.4); }
+      #mp-seek { width:100%; accent-color:#ff6ad5; cursor:pointer; }
+      .mp-times { width:100%; display:flex; justify-content:space-between; font-size:7px; color:#8aa; }
+      .mp-transport { display:flex; align-items:center; justify-content:center; gap:10px; }
+      .mp-transport .btn { flex:0 0 auto; min-width:0; padding:10px 0; }
+      #mp-shuffle,#mp-prev,#mp-next,#mp-loop { width:44px; font-size:12px; }
+      #mp-playpause { width:56px; font-size:16px; }
+      .mp-volrow { width:100%; display:flex; align-items:center; gap:8px; font-size:9px; color:#88a; }
+      #mp-vol { flex:1; accent-color:#ff6ad5; cursor:pointer; }
+      .mp-tracks { flex:1; min-width:0; display:flex; flex-direction:column;
+        background:linear-gradient(160deg,rgba(8,10,26,.82),rgba(24,10,44,.74)); border:1px solid rgba(120,150,255,.3);
+        border-radius:16px; overflow:hidden; box-shadow:0 8px 26px rgba(0,0,0,.5); width:min(520px,94vw); }
+      .mp-tracks-head { font-size:8px; color:#8ef0ff; padding:13px 15px; letter-spacing:1px;
+        border-bottom:1px solid rgba(255,255,255,.09); background:rgba(0,0,0,.28); }
+      .mp-list { overflow-y:auto; max-height:min(360px,52vh); scrollbar-width:thin; scrollbar-color:#3a3a6a #0a0a1a; }
+      .mp-row { display:flex; align-items:center; gap:12px; padding:12px 15px; cursor:pointer;
+        border-bottom:1px solid rgba(255,255,255,.05); position:relative; transition:background .12s; }
+      .mp-row:hover { background:rgba(142,240,255,.08); }
+      .mp-fret { width:15px; height:15px; border-radius:50%; flex:0 0 auto; box-shadow:0 0 9px currentColor; border:2px solid rgba(255,255,255,.35); }
+      .mp-name { font-size:9px; color:#cfe4ff; flex:1; min-width:0; }
+      .mp-num { font-size:8px; color:#6b7bb0; width:20px; flex:0 0 auto; }
+      .mp-row.active { background:linear-gradient(90deg, rgba(176,107,255,.30), rgba(176,107,255,.04)); }
+      .mp-row.active .mp-name { color:#fff; text-shadow:0 0 9px rgba(176,107,255,.85); }
+      .mp-row.active::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:#8ef0ff; box-shadow:0 0 10px #8ef0ff; }
+      .mp-eq { margin-left:auto; display:none; gap:2px; align-items:flex-end; height:16px; }
+      .mp-row.active .mp-eq { display:flex; }
+      .mp-eq i { width:3px; height:5px; background:#8ef0ff; box-shadow:0 0 6px #8ef0ff; animation:mp-eq .85s ease-in-out infinite; }
+      .mp-eq i:nth-child(2){ animation-delay:.16s } .mp-eq i:nth-child(3){ animation-delay:.32s } .mp-eq i:nth-child(4){ animation-delay:.48s }
+      .mp-list.paused .mp-eq i { animation-play-state:paused; }
+      @keyframes mp-eq { 0%,100%{ height:4px } 50%{ height:16px } }
+    </style>
     <div class="screen screen-bg-glass" id="s-musicplayer">
-      <div class="screen-title">— 🎵 MUSIC PLAYER —</div>
-      <div style="width:min(560px,94vw);display:flex;flex-direction:column;gap:12px;font-family:'Press Start 2P',monospace;">
-        <!-- Now playing -->
-        <div style="background:rgba(0,0,0,.34);border:1px solid #2a2a4a;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
-          <div style="font-size:8px;color:#7fa8d8;">NOW PLAYING</div>
-          <div id="mp-title" style="font-size:11px;color:#ffe27a;line-height:1.5;min-height:18px;">—</div>
-          <input id="mp-seek" type="range" min="0" max="1000" value="0" step="1" style="width:100%;accent-color:#b06bff;cursor:pointer;">
-          <div style="display:flex;justify-content:space-between;font-size:7px;color:#8fa;color:#88a;">
-            <span id="mp-cur">0:00</span><span id="mp-dur">0:00</span>
+      <div class="screen-title">— 🎸 SONG SELECT —</div>
+      <div class="mp-wrap">
+        <!-- LEFT: turntable + transport -->
+        <div class="mp-deck">
+          <div class="mp-turntable">
+            <div class="mp-disc" id="mp-disc"><div class="mp-label" id="mp-disc-label">♪</div></div>
+            <div class="mp-tonearm" id="mp-tonearm"></div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:12px;">
-            <button class="btn btn-icon" id="mp-shuffle" title="Shuffle" style="font-size:12px;flex:0 0 auto;width:48px;min-width:0;padding:10px 0;">🔀</button>
-            <button class="btn btn-icon" id="mp-prev" title="Previous" style="font-size:14px;flex:0 0 auto;width:48px;min-width:0;padding:10px 0;">⏮</button>
-            <button class="btn btn-icon" id="mp-playpause" title="Play/Pause" style="font-size:16px;flex:0 0 auto;width:60px;min-width:0;padding:10px 0;">▶</button>
-            <button class="btn btn-icon" id="mp-next" title="Next" style="font-size:14px;flex:0 0 auto;width:48px;min-width:0;padding:10px 0;">⏭</button>
-            <button class="btn btn-icon" id="mp-loop" title="Loop" style="font-size:12px;flex:0 0 auto;width:48px;min-width:0;padding:10px 0;">🔁</button>
+          <div class="mp-now">NOW PLAYING</div>
+          <div id="mp-title" class="mp-title">—</div>
+          <input id="mp-seek" type="range" min="0" max="1000" value="0" step="1">
+          <div class="mp-times"><span id="mp-cur">0:00</span><span id="mp-dur">0:00</span></div>
+          <div class="mp-transport">
+            <button class="btn btn-icon" id="mp-shuffle" title="Shuffle">🔀</button>
+            <button class="btn btn-icon" id="mp-prev" title="Previous">⏮</button>
+            <button class="btn btn-icon" id="mp-playpause" title="Play/Pause">▶</button>
+            <button class="btn btn-icon" id="mp-next" title="Next">⏭</button>
+            <button class="btn btn-icon" id="mp-loop" title="Loop">🔁</button>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;font-size:7px;color:#88a;">
-            🔈<input id="mp-vol" type="range" min="0" max="100" value="80" step="1" style="flex:1;accent-color:#b06bff;cursor:pointer;">
-          </div>
+          <div class="mp-volrow">🔈<input id="mp-vol" type="range" min="0" max="100" value="80" step="1"></div>
         </div>
-        <!-- Track list -->
-        <div id="mp-list" style="background:rgba(0,0,0,.3);border:1px solid #2a2a4a;border-radius:12px;max-height:min(300px,42vh);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#3a3a6a #0a0a1a;"></div>
-        <button class="btn red" onclick="MusicPlayer.close()" style="align-self:flex-start;">◀ BACK</button>
+        <!-- RIGHT: Guitar-Hero setlist -->
+        <div class="mp-tracks">
+          <div class="mp-tracks-head" id="mp-sethead">▮ SETLIST</div>
+          <div id="mp-list" class="mp-list"></div>
+        </div>
       </div>
+      <button class="btn red" onclick="MusicPlayer.close()" style="margin-top:14px;">◀ BACK</button>
     </div>
 
     <div class="screen screen-bg-glass" id="s-shop">
@@ -14585,7 +14647,10 @@
         // only start menu music if we're genuinely still on a menu.
         setTimeout(() => {
           try {
-            if (GS !== 'playing' && typeof startMenuMusic === 'function') startMenuMusic();
+            // Don't start menu music if the very first gesture opened the
+            // jukebox — its own track owns the audio while it's open.
+            const jukebox = window.MusicPlayer && MusicPlayer.isOpen && MusicPlayer.isOpen();
+            if (GS !== 'playing' && !jukebox && typeof startMenuMusic === 'function') startMenuMusic();
           } catch (e) {}
         }, 140);
         window.removeEventListener('pointerdown', startIfMenu);
