@@ -1167,8 +1167,10 @@ function edEnsure() {
   const edges = new THREE.EdgesGeometry(cg);
   ed.cursorMesh = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x8ef0ff }));
   ed.cursorMesh.renderOrder = 20; scene.add(ed.cursorMesh);
-  const dot = new THREE.Mesh(new THREE.SphereGeometry(6, 10, 8), new THREE.MeshBasicMaterial({ color: 0x8ef0ff }));
-  ed.cursorMesh.add(dot); ed.cursorDot = dot;
+  // Separate marker dot (NOT a child of the scaled wire box, so it never
+  // inherits the platform footprint's scale).
+  const dot = new THREE.Mesh(new THREE.SphereGeometry(9, 14, 12), new THREE.MeshBasicMaterial({ color: 0x8ef0ff }));
+  dot.renderOrder = 20; scene.add(dot); ed.cursorDot = dot;
   // Selection highlight box.
   ed.selBox = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
     new THREE.LineBasicMaterial({ color: 0xffe27a }));
@@ -1402,6 +1404,7 @@ ThreeMode.editor = {
     ed.active = false;
     if (three && three.player) three.player.group.visible = true;   // play renderer never re-enables it
     if (ed.cursorMesh) ed.cursorMesh.visible = false;
+    if (ed.cursorDot) ed.cursorDot.visible = false;
     if (ed.selBox) ed.selBox.visible = false;
     const cv = document.getElementById('three-canvas');
     if (cv) { cv.style.display = 'none'; cv.style.pointerEvents = 'none'; cv.style.zIndex = '2'; }
@@ -1432,18 +1435,21 @@ ThreeMode.editor = {
     }
     if (ed.dirty) { buildLevel(ed.level); edBuildMarkers(); ed.dirty = false; }
 
-    // Cursor preview (platform footprint for build tools; a dot otherwise).
-    const cm = ed.cursorMesh;
+    // Cursor preview: a platform footprint (wire box) for build tools, a small
+    // dot for markers, nothing for select.
+    const cm = ed.cursorMesh, dot = ed.cursorDot;
+    const build = (ed.tool === 'platform' || ed.tool === 'bounce' || ed.tool === 'lava');
     if (ed.cursorOn && ed.tool !== 'select') {
-      cm.visible = true;
-      if (ed.tool === 'platform' || ed.tool === 'bounce' || ed.tool === 'lava') {
+      if (build) {
+        cm.visible = true; dot.visible = false;
         cm.position.set(ed.cursor.x, ed.cursor.y - ed.plat.h / 2, ed.cursor.z);
         cm.scale.set(ed.plat.w, ed.plat.h, ed.plat.d);
-        ed.cursorDot.scale.setScalar(1 / Math.max(ed.plat.w, 1) * 40);
       } else {
-        cm.position.copy(ed.cursor); cm.scale.set(30, 30, 30); ed.cursorDot.scale.setScalar(0.6);
+        cm.visible = false; dot.visible = true;
+        dot.scale.setScalar(ed.tool === 'erase' ? 1.3 : 1);
+        dot.position.copy(ed.cursor);
       }
-    } else cm.visible = false;
+    } else { cm.visible = false; dot.visible = false; }
 
     edUpdateSelBox();
     if (ed.grid3d) { ed.grid3d.position.set(ed.cam.fx, -ed.buildY, ed.cam.fz); }

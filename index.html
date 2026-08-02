@@ -2707,6 +2707,8 @@
   <script src="src/worldmap.js"></script>
   <!-- Music player (jukebox) — window.MusicPlayer. -->
   <script src="src/musicplayer.js"></script>
+  <!-- 3D level builder — window.Builder3D (uses ThreeMode.editor). -->
+  <script src="src/builder3d.js"></script>
   <!-- ─── 3D dimension mode (Three.js, bundled by Vite) ──────────────
        The one true ES module in the project. Reads live 2D world state
        and re-renders it in perspective 3D when the Highland Prism is
@@ -2796,6 +2798,9 @@
       <button id="jukebox-chip" class="help-chip" title="Music Player" aria-label="Music player"
         onclick="MusicPlayer.open()"
         style="top:174px;font-size:14px;">🎵</button>
+      <button id="builder3d-chip" class="help-chip" title="3D Level Builder" aria-label="3D level builder"
+        onclick="Builder3D.open()"
+        style="top:213px;font-size:14px;">💠</button>
       <!-- Wallet readout: spendable coins + premium embers. Updated live
            via GameWallet.onChange (wired in the inline script). -->
       <div id="wallet-chip" title="Your spendable currency" aria-label="Wallet"
@@ -3050,6 +3055,16 @@
         </div>
       </div>
       <button class="btn red" onclick="MusicPlayer.close()" style="margin-top:14px;">◀ BACK</button>
+    </div>
+
+    <!-- ── My 3D Levels (3D builder) ────────────────────────────────── -->
+    <div class="screen screen-bg-glass" id="s-my3d">
+      <div class="screen-title" style="color:#8ef0ff;text-shadow:0 0 14px rgba(142,240,255,.55);">— 💠 MY 3D LEVELS —</div>
+      <div style="width:min(560px,94vw);display:flex;flex-direction:column;gap:12px;font-family:'Press Start 2P',monospace;">
+        <button class="btn" onclick="Builder3D.newLevel()" style="font-size:10px;background:rgba(142,240,255,.18);border-color:#8ef0ff;">✚ NEW LEVEL</button>
+        <div id="my3d-list" style="background:rgba(0,0,0,.3);border:1px solid #2a2a4a;border-radius:12px;max-height:min(360px,52vh);overflow-y:auto;scrollbar-width:thin;scrollbar-color:#3a3a6a #0a0a1a;"></div>
+        <button class="btn red" onclick="Builder3D.close()" style="align-self:flex-start;">◀ BACK</button>
+      </div>
     </div>
 
     <div class="screen screen-bg-glass" id="s-shop">

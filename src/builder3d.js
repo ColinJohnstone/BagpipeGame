@@ -25,7 +25,7 @@
     ['start', '🚩', 'Start'], ['goal', '🏰', 'Goal'], ['select', '✋', 'Select / Move'], ['erase', '🧽', 'Erase'],
   ];
 
-  let loopId = 0, running = false, editingId = null, dom = null, playReturn = false;
+  let loopId = 0, running = false, editingId = null, dom = null, playReturn = false, current = null;
 
   // ── level factory ────────────────────────────────────────────────
   function blankLevel(name) {
@@ -70,18 +70,19 @@
     list.forEach((entry) => {
       const c = entry.level || {};
       const nP = (c.platforms || []).length, nC = (c.coins || []).length, nE = (c.enemies || []).length;
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.07);';
-      row.innerHTML =
-        '<div style="flex:1;min-width:0;">'
-        + '<div style="font-size:10px;color:#ffe27a;">' + escapeHtml(c.name || 'UNTITLED') + '</div>'
-        + '<div style="font-size:7px;color:#8fb;opacity:.7;margin-top:5px;">' + (c.biome || 'grass').toUpperCase() + ' · ' + nP + ' plat · ' + nC + ' coin · ' + nE + ' foe</div>'
-        + '</div>';
-      const mk = (label, bg, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = label; b.style.cssText = 'font-size:8px;padding:8px 10px;' + (bg ? 'background:' + bg + ';' : ''); b.onclick = fn; return b; };
-      row.appendChild(mk('▶ PLAY', 'rgba(60,180,90,.25)', () => playtest(entry.level)));
-      row.appendChild(mk('✎ EDIT', '', () => edit(entry.id)));
-      row.appendChild(mk('🗑', 'rgba(180,60,60,.25)', () => { if (confirm('Delete "' + (c.name || 'level') + '"?')) { const l = loadAll().filter(x => x.id !== entry.id); saveAll(l); renderList(); } }));
-      wrap.appendChild(row);
+      const card = document.createElement('div');
+      card.style.cssText = 'display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.07);';
+      card.innerHTML =
+        '<div style="font-size:10px;color:#ffe27a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(c.name || 'UNTITLED') + '</div>'
+        + '<div style="font-size:7px;color:#8fb;opacity:.7;white-space:nowrap;">' + (c.biome || 'grass').toUpperCase() + ' · ' + nP + ' plat · ' + nC + ' coin · ' + nE + ' foe</div>';
+      const btns = document.createElement('div');
+      btns.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+      const mk = (label, bg, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = label; b.style.cssText = 'font-size:8px;padding:8px 12px;min-width:0;flex:0 0 auto;' + (bg ? 'background:' + bg + ';' : ''); b.onclick = fn; return b; };
+      btns.appendChild(mk('▶ PLAY', 'rgba(60,180,90,.25)', () => playtest(entry.level)));
+      btns.appendChild(mk('✎ EDIT', '', () => edit(entry.id)));
+      btns.appendChild(mk('🗑 DELETE', 'rgba(180,60,60,.25)', () => { if (confirm('Delete "' + (c.name || 'level') + '"?')) { const l = loadAll().filter(x => x.id !== entry.id); saveAll(l); renderList(); } }));
+      card.appendChild(btns);
+      wrap.appendChild(card);
     });
   }
   function escapeHtml(s) { return String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m])); }
@@ -92,6 +93,7 @@
   // ── editor session ───────────────────────────────────────────────
   function startEditing(level) {
     if (!window.ThreeMode || ThreeMode.isFailed()) { alert('3D mode is unavailable on this device.'); return; }
+    current = level;
     // Hide any active menu screen so the 3D canvas is unobscured.
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const hud = document.getElementById('hud'); if (hud) hud.style.display = 'none';
@@ -271,8 +273,10 @@
     if (!Array.isArray(window.WORLDS)) return;
     WORLDS[98] = WORLDS[98] || { name: 'TEST3D', color: '#b06bff', borderColor: '#b06bff', emoji: '💠', desc: '', levels: [] };
     WORLDS[98].levels[0] = ld;
-    // Hide editor UI + list; run the level through the normal play pipeline.
+    // Hide editor UI + list; fully close the editor so its input handlers and
+    // canvas state don't fight the play session. Then run the normal pipeline.
     stopLoop();
+    if (window.ThreeMode && ThreeMode.editor.isOpen()) ThreeMode.editor.close();
     if (dom) dom.root.style.display = 'none';
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     playReturn = !!fromEditor;
@@ -302,10 +306,17 @@
   function leavePlaytest() {
     const b = document.getElementById('b3d-playexit'); if (b) b.style.display = 'none';
     if (window.ThreeMode) ThreeMode.reset();
-    window.GS = 'menu';
+    window.GS = 'title';
     const hud = document.getElementById('hud'); if (hud) hud.style.display = 'none';
-    if (playReturn && dom) { dom.root.style.display = ''; running = true; loop(); }
-    else open();
+    if (playReturn && current && window.ThreeMode) {
+      // Re-enter the editor on the same level (reset() closed the 3D scene).
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      ensureToolbar();
+      ThreeMode.editor.open(current, { onChange: syncHud });
+      dom.root.style.display = '';
+      syncFields();
+      running = true; loop();
+    } else open();
   }
 
   window.Builder3D = { open, close, newLevel, edit, exitEditor, _leavePlaytest: leavePlaytest };
