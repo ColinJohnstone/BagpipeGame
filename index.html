@@ -13260,6 +13260,10 @@
         }
       }
 
+      // ── Distant parallax layer: celestial body + far ridge ───────────
+      // Drawn behind the horizon glow + mid silhouettes for real depth.
+      if (!opts.noAtmo) drawFarLayer(c, tb.style || themeKey, tb, { viewX, viewY, viewW, viewH, worldW, frame });
+
       // ── Atmospheric horizon glow (all themes) ────────────────────────
       // A soft accent-coloured band rising from the horizon gives the sky
       // real depth. Drawn BEHIND the silhouettes so they read against it.
@@ -13543,6 +13547,74 @@
 
     // Per-theme drifting ambient motes for the themes that lack bespoke
     // particle passes above, so EVERY theme has some atmospheric life.
+    // ── Distant parallax backdrop: celestial body + far ridge line ──────
+    // A slow-moving far layer behind the mid silhouettes gives each theme
+    // real depth (an "illustrated environment" feel rather than one flat
+    // silhouette). Celestial bodies anchor the sky; the ridge is a hazy
+    // distant mountain/hill range at a slower parallax speed.
+    const CELESTIAL = {
+      highland:  { type: 'moon',   x: 0.80, y: 0.16, r: 34, col: '#e8eeff' },
+      frozen:    { type: 'moon',   x: 0.82, y: 0.14, r: 32, col: '#d6ecff' },
+      shadow:    { type: 'moon',   x: 0.78, y: 0.15, r: 36, col: '#c9a0ff' },
+      cherry:    { type: 'moon',   x: 0.80, y: 0.16, r: 40, col: '#ffd9ec' },
+      cosmic:    { type: 'planet', x: 0.76, y: 0.20, r: 46, col: '#9a7ae0' },
+      halloween: { type: 'moon',   x: 0.80, y: 0.15, r: 40, col: '#ffcaa0' },
+      cyber:     { type: 'moon',   x: 0.82, y: 0.15, r: 30, col: '#3ad8ff' },
+      ocean:     { type: 'moon',   x: 0.80, y: 0.16, r: 30, col: '#dff4ff' },
+      citadel:   { type: 'sun',    x: 0.80, y: 0.16, r: 30, col: '#ffe6a0' },
+      forest:    { type: 'moon',   x: 0.82, y: 0.15, r: 28, col: '#eaffe0' },
+      steampunk: { type: 'sun',    x: 0.80, y: 0.17, r: 30, col: '#ffcf7a' },
+    };
+    const FAR_RIDGE = {
+      highland:  { col: 'rgba(40,60,95,.5)',   base: 0.42, amp: 70, step: 140, freq: 0.0028 },
+      frozen:    { col: 'rgba(60,90,140,.5)',  base: 0.40, amp: 82, step: 140, freq: 0.0026 },
+      volcanic:  { col: 'rgba(64,16,6,.6)',    base: 0.44, amp: 64, step: 150, freq: 0.0030 },
+      forest:    { col: 'rgba(14,46,30,.55)',  base: 0.46, amp: 56, step: 130, freq: 0.0030 },
+      desert:    { col: 'rgba(120,64,26,.45)', base: 0.50, amp: 44, step: 150, freq: 0.0026 },
+      ocean:     { col: 'rgba(10,52,72,.5)',   base: 0.50, amp: 36, step: 150, freq: 0.0024 },
+      shadow:    { col: 'rgba(35,6,60,.55)',   base: 0.42, amp: 78, step: 120, freq: 0.0032 },
+      cherry:    { col: 'rgba(60,26,44,.5)',   base: 0.44, amp: 62, step: 140, freq: 0.0028 },
+      halloween: { col: 'rgba(40,18,44,.55)',  base: 0.44, amp: 66, step: 130, freq: 0.0030 },
+      castle:    { col: 'rgba(30,22,28,.55)',  base: 0.46, amp: 52, step: 150, freq: 0.0028 },
+      citadel:   { col: 'rgba(30,36,54,.5)',   base: 0.44, amp: 56, step: 150, freq: 0.0028 },
+      cosmic:    { col: 'rgba(20,14,60,.5)',   base: 0.52, amp: 40, step: 160, freq: 0.0024 },
+      steampunk: { col: 'rgba(40,28,14,.5)',   base: 0.46, amp: 50, step: 140, freq: 0.0028 },
+      coralreef: { col: 'rgba(8,52,62,.5)',    base: 0.50, amp: 34, step: 150, freq: 0.0024 },
+    };
+    function drawFarLayer(c, style, tb, o) {
+      const { viewX, viewY, viewW, viewH, worldW, frame } = o;
+      // Celestial body (moon / sun / planet) with a soft halo.
+      const cel = CELESTIAL[style];
+      if (cel) {
+        const cx = viewX + viewW * cel.x, cy = viewY + viewH * cel.y;
+        const hg = c.createRadialGradient(cx, cy, cel.r * 0.35, cx, cy, cel.r * 2.8);
+        hg.addColorStop(0, cel.col + '55'); hg.addColorStop(1, cel.col + '00');
+        c.fillStyle = hg; c.beginPath(); c.arc(cx, cy, cel.r * 2.8, 0, Math.PI * 2); c.fill();
+        c.fillStyle = cel.col; c.beginPath(); c.arc(cx, cy, cel.r, 0, Math.PI * 2); c.fill();
+        if (cel.type === 'moon') {
+          c.save(); c.globalAlpha = 0.22; c.fillStyle = cleanThemeColor((tb.bg && tb.bg[1]) || '#101010', '#101010');
+          c.beginPath(); c.arc(cx + cel.r * 0.42, cy - cel.r * 0.18, cel.r * 0.88, 0, Math.PI * 2); c.fill(); c.restore();
+        } else if (cel.type === 'planet') {
+          c.strokeStyle = cel.col + '99'; c.lineWidth = 3;
+          c.beginPath(); c.ellipse(cx, cy, cel.r * 1.9, cel.r * 0.52, -0.4, 0, Math.PI * 2); c.stroke(); c.lineWidth = 1;
+        }
+      }
+      // Far ridge — slow parallax, hazy distant mountains/hills.
+      const FAR = FAR_RIDGE[style];
+      if (FAR) {
+        c.save(); c.translate(viewX * 0.12, 0);
+        c.fillStyle = FAR.col;
+        const baseY = viewY + viewH * FAR.base;
+        c.beginPath(); c.moveTo(-320, viewY + viewH);
+        for (let x = -320; x < worldW + 420; x += FAR.step) {
+          const y = baseY + Math.sin(x * FAR.freq) * FAR.amp + Math.sin(x * FAR.freq * 2.3 + 1.7) * FAR.amp * 0.4;
+          c.lineTo(x, y);
+        }
+        c.lineTo(worldW + 420, viewY + viewH); c.closePath(); c.fill();
+        c.restore();
+      }
+    }
+
     // Every theme gets ambient motes. Themes with their own bespoke particle
     // pass above ALSO get these (denser = more obviously alive).
     const ATMO_MOTES = {
