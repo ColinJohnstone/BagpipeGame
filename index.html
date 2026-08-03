@@ -5144,6 +5144,7 @@
       camera.x = bs.camX; camera.y = bs.camY;
       const animF = np.frame || 0;
       const themeKey = inferThemeKey(ld, 'highland');
+      applyColorGrade(themeKey);
       ctx.save(); ctx.translate(-camera.x, -camera.y);
       drawThemeBackdrop(ctx, ld, themeKey, { viewX: camera.x, viewY: camera.y, viewW: W, viewH: H, worldW: ld.width || W, frame: animF });
       for (const p of (ld.platforms || [])) {
@@ -11125,6 +11126,30 @@
 
     // drawWeatherOverlay moved to src/weather.js — exposed as window.drawWeatherOverlay.
 
+    // ── Per-theme color grade (punchier colours + lighting) ─────────────
+    // A GPU-composited CSS filter on the whole game canvas. Cheap, global,
+    // and instantly lifts saturation/contrast so every theme reads bolder.
+    const THEME_GRADE = {
+      _default:  'saturate(1.32) contrast(1.09) brightness(1.04)',
+      volcanic:  'saturate(1.50) contrast(1.13) brightness(1.06)',
+      frozen:    'saturate(1.26) contrast(1.13) brightness(1.09)',
+      heaven:    'saturate(1.28) contrast(1.06) brightness(1.07)',
+      cyber:     'saturate(1.55) contrast(1.14) brightness(1.06)',
+      cosmic:    'saturate(1.48) contrast(1.11) brightness(1.05)',
+      shadow:    'saturate(1.42) contrast(1.16) brightness(1.06)',
+      cherry:    'saturate(1.42) contrast(1.09) brightness(1.06)',
+      desert:    'saturate(1.38) contrast(1.09) brightness(1.06)',
+      halloween: 'saturate(1.48) contrast(1.15) brightness(1.05)',
+      ocean:     'saturate(1.38) contrast(1.09) brightness(1.05)',
+      coralreef: 'saturate(1.44) contrast(1.09) brightness(1.06)',
+      forest:    'saturate(1.40) contrast(1.10) brightness(1.05)',
+    };
+    let _lastGrade = '';
+    function applyColorGrade(themeKey) {
+      const g = THEME_GRADE[themeKey] || THEME_GRADE._default;
+      if (g !== _lastGrade) { _lastGrade = g; try { canvas.style.filter = g; } catch (e) {} }
+    }
+
     function drawScene() {
       const ld = getLevelData();
       ctx.save();
@@ -11137,6 +11162,7 @@
       ctx.translate(-camera.x + shakeX + weatherShakeX, -camera.y + shakeY + weatherShakeY);
 
       const themeKey = inferThemeKey(ld, 'highland');
+      applyColorGrade(themeKey);
       drawThemeBackdrop(ctx, ld, themeKey, { viewX: camera.x, viewY: camera.y, viewW: W, viewH: H, worldW: ld.width || W, frame: frameCount });
       drawWeatherOverlay(ctx, ld, camera.x, camera.y, W, H, frameCount, false);
       drawSeaChaseMonster(ctx, ld, frameCount);
